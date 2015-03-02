@@ -1,0 +1,43 @@
+USE [910160US2]
+GO
+/****** Object:  StoredProcedure [dbo].[TmSp_Inc1PrintTable]    Script Date: 03/02/2015 14:02:11 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[TmSp_Inc1PrintTable]
+	@DocKey@ INT,
+	@ObjectId@ NCHAR(20)
+AS
+
+DECLARE @tableName NVARCHAR(40)
+IF (@ObjectId@ = '1470000065') SET @tableName = 'INC1'
+ELSE	SET @tableName = 'ICD1'
+
+
+CREATE TABLE #TempTable (
+      DocEntry INT,
+      ItemCode NCHAR(20),
+      ItemDesc NCHAR(100)  ,
+      WhsCode NCHAR(8)  ,
+      BinEntry INT,
+      InWhsQty INT,
+      Counted NCHAR(1),
+      CountQty INT
+)
+------------------------------------------
+
+INSERT INTO #TempTable EXEC 
+('  SELECT
+	DocEntry,
+	ItemCode,
+	ItemDesc,
+	WhsCode,
+	BinEntry,
+	InWhsQty,
+	Counted,
+	CountQty
+    FROM ICD1 WHERE DocEntry = 33')
+
+SELECT * FROM #TempTable
+DROP TABLE #TempTable
