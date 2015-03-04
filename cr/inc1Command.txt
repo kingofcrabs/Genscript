@@ -1,0 +1,84 @@
+USE [910160US]
+GO
+/****** Object:  StoredProcedure [dbo].[TmSp_Inventory_Counting_PerCounter]    Script Date: 03/04/2015 14:41:53 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[TmSp_Inventory_Counting_PerCounter]
+@DocKey INT,
+@ObjectId NCHAR(20),
+@MultipleCounterType nvarchar(1) = 'I',
+@MultipleCounterOrder nvarchar(12)
+AS
+BEGIN
+DECLARE @CountType nvarchar(1)
+DECLARE @CountNumber int
+
+IF (@ObjectId=1470000065)
+	BEGIN
+		SELECT @CountType = "OINC"."CountType"  FROM "OINC" WHERE "OINC"."DocEntry" = @DocKey;
+
+		IF (@CountType = '1') --single counter
+		BEGIN
+				SELECT "T1"."DocEntry", "T1"."ItemCode", "T1"."ItemDesc", "T1"."WhsCode", "T1"."BinEntry", "T2"."BinCode", "T1"."InWhsQty", "T1"."Counted", "T1"."CountQty" 
+				FROM "INC1" "T1" LEFT JOIN "OBIN" "T2" ON "T1"."BinEntry"="T2"."AbsEntry" WHERE "T1"."DocEntry"=@DocKey ORDER BY "T1"."VisOrder"
+		END 
+		ELSE  --multiple counters
+		BEGIN
+			IF (@MultipleCounterType = 'I') --individual counter
+			BEGIN
+				SELECT @CountNumber = "T1"."CounterNum" FROM "INC8" "T1" WHERE "T1"."DocEntry" = @DocKey AND "T1"."VisOrder" = @MultipleCounterOrder
+				
+				SELECT "T1"."DocEntry", "T1"."ItemCode", "T1"."ItemDesc", "T1"."WhsCode", "T1"."BinEntry", "T2"."BinCode", "T1"."InWhsQty", "T1"."Counted", "T3"."TotalQty" AS "CountQty" 
+				FROM "INC1" "T1" 
+				LEFT JOIN "OBIN" "T2" ON "T1"."BinEntry"="T2"."AbsEntry"
+				LEFT JOIN "INC9" "T3" ON "T1"."DocEntry"="T3"."DocEntry" AND  "T1"."LineNum"="T3"."LineNum" AND "T3".CounterNum = @CountNumber
+				WHERE "T1"."DocEntry"=@DocKey ORDER BY "T1"."VisOrder"
+			END 
+			ELSE  --Team counters
+			BEGIN
+				SELECT @CountNumber = "T1"."CounterNum" FROM "INC4" "T1" WHERE "T1"."DocEntry" = @DocKey AND "T1"."VisOrder" = @MultipleCounterOrder
+				
+				SELECT "T1"."DocEntry", "T1"."ItemCode", "T1"."ItemDesc", "T1"."WhsCode", "T1"."BinEntry", "T2"."BinCode", "T1"."InWhsQty", "T1"."Counted", "T3"."TotalQty" AS "CountQty" 
+				FROM "INC1" "T1" 
+				LEFT JOIN "OBIN" "T2" ON "T1"."BinEntry"="T2"."AbsEntry"
+				LEFT JOIN "INC5" "T3" ON "T1"."DocEntry"="T3"."DocEntry" AND  "T1"."LineNum"="T3"."LineNum" AND "T3".CounterNum = @CountNumber
+				WHERE "T1"."DocEntry"=@DocKey ORDER BY "T1"."VisOrder"
+			END 
+		END
+	END
+ELSE
+	BEGIN
+		SELECT @CountType = "OICD"."CountType"  FROM "OICD" WHERE "OICD"."DocEntry" = @DocKey;
+
+		IF (@CountType = '1') --single counter
+		BEGIN
+				SELECT "T1"."DocEntry", "T1"."ItemCode", "T1"."ItemDesc", "T1"."WhsCode", "T1"."BinEntry", "T2"."BinCode", "T1"."InWhsQty", "T1"."Counted", "T1"."CountQty" 
+				FROM "ICD1" "T1" LEFT JOIN "OBIN" "T2" ON "T1"."BinEntry"="T2"."AbsEntry" WHERE "T1"."DocEntry"=@DocKey ORDER BY "T1"."VisOrder"
+		END 
+		ELSE  --multiple counters
+		BEGIN
+			IF (@MultipleCounterType = 'I') --individual counter
+			BEGIN
+				SELECT @CountNumber = "T1"."CounterNum" FROM "ICD8" "T1" WHERE "T1"."DocEntry" = @DocKey AND "T1"."VisOrder" = @MultipleCounterOrder
+				
+				SELECT "T1"."DocEntry", "T1"."ItemCode", "T1"."ItemDesc", "T1"."WhsCode", "T1"."BinEntry", "T2"."BinCode", "T1"."InWhsQty", "T1"."Counted", "T3"."TotalQty" AS "CountQty" 
+				FROM "ICD1" "T1" 
+				LEFT JOIN "OBIN" "T2" ON "T1"."BinEntry"="T2"."AbsEntry"
+				LEFT JOIN "ICD9" "T3" ON "T1"."DocEntry"="T3"."DocEntry" AND  "T1"."LineNum"="T3"."LineNum" AND "T3".CounterNum = @CountNumber
+				WHERE "T1"."DocEntry"=@DocKey ORDER BY "T1"."VisOrder"
+			END 
+			ELSE  --Team counters
+			BEGIN
+				SELECT @CountNumber = "T1"."CounterNum" FROM "ICD4" "T1" WHERE "T1"."DocEntry" = @DocKey AND "T1"."VisOrder" = @MultipleCounterOrder
+				
+				SELECT "T1"."DocEntry", "T1"."ItemCode", "T1"."ItemDesc", "T1"."WhsCode", "T1"."BinEntry", "T2"."BinCode", "T1"."InWhsQty", "T1"."Counted", "T3"."TotalQty" AS "CountQty" 
+				FROM "ICD1" "T1" 
+				LEFT JOIN "OBIN" "T2" ON "T1"."BinEntry"="T2"."AbsEntry"
+				LEFT JOIN "ICD5" "T3" ON "T1"."DocEntry"="T3"."DocEntry" AND  "T1"."LineNum"="T3"."LineNum" AND "T3".CounterNum = @CountNumber
+				WHERE "T1"."DocEntry"=@DocKey ORDER BY "T1"."VisOrder"
+			END 
+		END
+	END
+END
