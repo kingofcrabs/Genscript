@@ -367,6 +367,13 @@ namespace genscript
             string dstLabware = "";
             int dstWellID = 0;
             int vol = bOnBoundary ? itemInfo.vol * 10 : itemInfo.vol;
+            if (bOnBoundary)
+            {
+                if (ConfigurationManager.AppSettings.AllKeys.Contains("BoundaryFixedVolume"))
+                {
+                    vol = int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]);
+                }
+            }
             CalculateDestPos(usedWells, ref dstLabware, ref dstWellID);
             PipettingInfo pipettingInfo = new PipettingInfo(itemInfo.sID,
                 itemInfo.plateName, 
