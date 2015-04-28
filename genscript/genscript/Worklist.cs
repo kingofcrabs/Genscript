@@ -13,7 +13,8 @@ namespace genscript
         int maxVol = 200;
         static int usedWells = 0;
         HashSet<int> processedSrcWells = new HashSet<int>();
-        
+        readonly int labwareCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
+
         public List<string> GenerateWorklist(List<ItemInfo> itemsInfo,
             List<string> readableOutput,ref List<List<string>>well_PrimerIDsList,
             ref List<string> multiDispenseOptGWL)
@@ -21,6 +22,7 @@ namespace genscript
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
             CheckLabwareExists(pipettingInfos);
             pipettingInfos = SplitPipettingInfos(pipettingInfos);
+
             #region generate opt multi dispense gwl
             List<PipettingInfo> bigVols =new List<PipettingInfo>();
             List<PipettingInfo> normalVols =new List<PipettingInfo>();
@@ -29,7 +31,7 @@ namespace genscript
             #endregion
             List<PipettingInfo> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
             List<string> strs = Format(optimizedPipettingInfos);
-            well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
+            //well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
             readableOutput.AddRange(Format(pipettingInfos, true));
             return strs;
         }
@@ -534,12 +536,13 @@ namespace genscript
 
         private void CalculateDestPos(int usedWells,ref string slabwareID, ref int wellID)
         {
+            
             int curWellID = usedWells + 1;
-            int labwareID = (curWellID-1) / 16 + 1;
+            int labwareID = (curWellID + labwareCnt - 1) / labwareCnt;
             slabwareID = string.Format("dst{0}", labwareID);
             wellID = curWellID;
-            while( wellID > 16)
-                wellID -= 16;
+            while (wellID > labwareCnt)
+                wellID -= labwareCnt;
 
         }
 

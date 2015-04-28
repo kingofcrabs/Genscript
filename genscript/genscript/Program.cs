@@ -97,7 +97,7 @@ namespace genscript
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();
                 }
-                MergeReadable(readablecsvFormatStrs, primerIDsOf24WellPlateList);
+                //MergeReadable(readablecsvFormatStrs, primerIDsOf24WellPlateList);
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
                 //File.WriteAllLines(s24WellPlatePrimerIDsFile, primerIDsOf24WellPlate);
             }
