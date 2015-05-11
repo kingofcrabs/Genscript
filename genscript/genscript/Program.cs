@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Configuration;
 using System.IO;
+using Microsoft.Office.Interop.Excel;
 
 namespace genscript
 {
@@ -15,6 +16,8 @@ namespace genscript
             string sHeader = "srcLabel,srcWell,dstLabel,dstWell,volume";
             string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
             string workingFolder = ConfigurationManager.AppSettings["workingFolder"] + "\\";
+            Console.WriteLine("try to convert the excel to csv format.");
+            Convert2CSV(workingFolder);
             List<string> files = Directory.EnumerateFiles(workingFolder, "*csv").ToList();
             List<string> optFiles = files.Where(x => x.Contains("_192")).ToList();
             List<string> odFiles = files.Where(x => x.Contains("_OD")).ToList();
@@ -126,6 +129,12 @@ namespace genscript
             
         }
 
+        private static void Convert2CSV(string workingFolder)
+        {
+            List<string> files = Directory.EnumerateFiles(workingFolder, "*.xls").ToList();
+            SaveAsCSV(files);
+        }
+
 
         static private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList)
         {
@@ -164,24 +173,24 @@ namespace genscript
             return sub;
         }
 
-        private static string SaveAsCSV(string sheetPath)
+        private static void SaveAsCSV(List<string> sheetPaths)
         {
-            throw new Exception("not supporting excel now, contact the author at rex.xie@qq.com");
-            //int pos = sheetPath.IndexOf(".xls");
-            //if (pos == -1)
-            //    throw new Exception("invalid file, must has suffix with .xls");
-
-            //Application app = new Application();
-            //app.Visible = false;
-            //app.DisplayAlerts = false;
-            //Workbook wbWorkbook = app.Workbooks.Open(sheetPath, CorruptLoad: true);
-            //string sWithoutSuffix = "";
-            //sWithoutSuffix = sheetPath.Substring(0, pos);
-            //string sCSVFile = sWithoutSuffix + ".csv";
-            //wbWorkbook.SaveAs(sCSVFile, XlFileFormat.xlCSV);
-            //wbWorkbook.Close(false, "", true);
-            //app.Quit();
-            //return sCSVFile;
+            Application app = new Application();
+            app.Visible = false;
+            app.DisplayAlerts = false;
+            foreach (string sheetPath in sheetPaths)
+            {
+                Workbook wbWorkbook = app.Workbooks.Open(sheetPath);
+                string sWithoutSuffix = "";
+                int pos = sheetPath.IndexOf(".xls");
+                if (pos == -1)
+                    throw new Exception("Cannot find xls in file name!");
+                sWithoutSuffix = sheetPath.Substring(0, pos);
+                string sCSVFile = sWithoutSuffix + ".csv";
+                wbWorkbook.SaveAs(sCSVFile, XlFileFormat.xlCSV);
+                wbWorkbook.Close();
+            }
+            app.Quit();
         }
     }
 }
