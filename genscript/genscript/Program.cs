@@ -180,13 +180,17 @@ namespace genscript
             app.DisplayAlerts = false;
             foreach (string sheetPath in sheetPaths)
             {
-                Workbook wbWorkbook = app.Workbooks.Open(sheetPath);
+                
                 string sWithoutSuffix = "";
                 int pos = sheetPath.IndexOf(".xls");
                 if (pos == -1)
                     throw new Exception("Cannot find xls in file name!");
                 sWithoutSuffix = sheetPath.Substring(0, pos);
                 string sCSVFile = sWithoutSuffix + ".csv";
+                if (File.Exists(sCSVFile))
+                    continue;
+                sCSVFile = sCSVFile.Replace("\\\\", "\\");
+                Workbook wbWorkbook = app.Workbooks.Open(sheetPath);
                 wbWorkbook.SaveAs(sCSVFile, XlFileFormat.xlCSV);
                 wbWorkbook.Close();
             }

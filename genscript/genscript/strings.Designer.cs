@@ -61,7 +61,7 @@ namespace genscript {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 0.41.
+        ///   Looks up a localized string similar to 0.42.
         /// </summary>
         internal static string version {
             get {
