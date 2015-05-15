@@ -5,31 +5,38 @@ using System.Text;
 using System.Configuration;
 using System.IO;
 using Microsoft.Office.Interop.Excel;
+using System.Reflection;
 
 namespace genscript
 {
     class Program
     {
+        
         static void Main(string[] args)
         {
-            
+            GlobalVars.LabwareWellCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
+            GlobalVars.WorkingFolder = ConfigurationManager.AppSettings["GlobalVars.WorkingFolder"] + "\\";
+            Convert2CSV();
+            DoJob();
+            Console.ReadKey();
+        }
+
+        public static void DoJob()
+        {
             string sHeader = "srcLabel,srcWell,dstLabel,dstWell,volume";
             string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
-            string workingFolder = ConfigurationManager.AppSettings["workingFolder"] + "\\";
-            Console.WriteLine("try to convert the excel to csv format.");
-            Convert2CSV(workingFolder);
-            List<string> files = Directory.EnumerateFiles(workingFolder, "*csv").ToList();
+            List<string> files = Directory.EnumerateFiles(GlobalVars.WorkingFolder, "*csv").ToList();
             List<string> optFiles = files.Where(x => x.Contains("_192")).ToList();
             List<string> odFiles = files.Where(x => x.Contains("_OD")).ToList();
             optFiles = optFiles.OrderBy(x => GetSubString(x)).ToList();
             odFiles = odFiles.OrderBy(x => GetSubString(x)).ToList();
-            string outputFolder = workingFolder + "Outputs\\";
+            string outputFolder = GlobalVars.WorkingFolder + "Outputs\\";
             if (!Directory.Exists(outputFolder))
                 Directory.CreateDirectory(outputFolder);
-       
+
             string sResultFile = outputFolder + "result.txt";
             File.WriteAllText(sResultFile, "false");
-            
+
             if (optFiles.Count != odFiles.Count)
             {
                 Console.WriteLine("operation sheets' count doesnot equal to OD sheets' count.");
@@ -73,12 +80,12 @@ namespace genscript
                 List<List<string>> primerIDsOf24WellPlateList = new List<List<string>>();
                 csvFormatstrs.Add(sHeader);
                 readablecsvFormatStrs.Add(sReadableHeader);
-                File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count/2).ToString());
+                File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
                 List<ItemInfo> itemsInfo = new List<ItemInfo>();
                 int batchIndex = 1;
-                for (int i = 0; i < 4; i++ )
+                for (int i = 0; i < 4; i++)
                 {
-                    string sOutputFile = outputFolder + string.Format("{0}.csv", i+1);
+                    string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
                     File.WriteAllLines(sOutputFile, new List<string>());
                 }
                 for (int i = 0; i < optCSVFiles.Count; i += 2, batchIndex++)
@@ -92,15 +99,15 @@ namespace genscript
                     itemsInfo.AddRange(optSheet.Items);
                     string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex);
                     string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex);
-                    
-                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs,ref primerIDsOf24WellPlateList,
+
+                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref primerIDsOf24WellPlateList,
                         ref optGwlFormatStrs);
-                    
+
                     File.WriteAllLines(sOutputFile, tmpStrs);
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();
                 }
-                //MergeReadable(readablecsvFormatStrs, primerIDsOf24WellPlateList);
+                MergeReadable(readablecsvFormatStrs, primerIDsOf24WellPlateList);
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
                 //File.WriteAllLines(s24WellPlatePrimerIDsFile, primerIDsOf24WellPlate);
             }
@@ -111,7 +118,6 @@ namespace genscript
             {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 Console.WriteLine("Press any key to exit!");
-                Console.ReadKey();
                 return;
             }
 #endif
@@ -125,19 +131,39 @@ namespace genscript
             Console.WriteLine(string.Format("Out put file has been written to folder : {0}", outputFolder));
             Console.WriteLine("version: " + strings.version);
             Console.WriteLine("Press any key to exit!");
-            Console.ReadKey();
-            
         }
 
-        private static void Convert2CSV(string workingFolder)
+        internal static void Convert2CSV()
         {
-            List<string> files = Directory.EnumerateFiles(workingFolder, "*.xls").ToList();
+            Console.WriteLine("try to convert the excel to csv format.");
+            List<string> files = Directory.EnumerateFiles(GlobalVars.WorkingFolder, "*.xls").ToList();
             SaveAsCSV(files);
         }
+        static public string GetExeFolder()
+        {
+            string s = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            return s + "\\";
+        }
 
+        static public string GetExeParentFolder()
+        {
+            string s = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            int index = s.LastIndexOf("\\");
+            return s.Substring(0, index) + "\\";
+        }
 
         static private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList)
         {
+            
+            if (GlobalVars.LabwareWellCnt == 16)
+            {
+                var strs = well_PrimerIDsList.First().ToList();
+                for (int i = 0; i < strs.Count; i++)
+                {
+                    readableOutput[i] += ",," + strs[i];
+                }
+                return;
+            }
             int startLine = 0;
             foreach (List<string> well_PrimerIDs in well_PrimerIDsList)
             {

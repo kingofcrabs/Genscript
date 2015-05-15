@@ -13,7 +13,7 @@ namespace genscript
         int maxVol = 200;
         static int usedWells = 0;
         HashSet<int> processedSrcWells = new HashSet<int>();
-        readonly int labwareCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
+        
 
         public List<string> GenerateWorklist(List<ItemInfo> itemsInfo,
             List<string> readableOutput,ref List<List<string>>well_PrimerIDsList,
@@ -31,7 +31,7 @@ namespace genscript
             #endregion
             List<PipettingInfo> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
             List<string> strs = Format(optimizedPipettingInfos);
-            //well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
+            well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
             readableOutput.AddRange(Format(pipettingInfos, true));
             return strs;
         }
@@ -42,40 +42,93 @@ namespace genscript
         {
             List<List<string>> well_PrimerIDsList = new List<List<string>>();
             var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
-            labwares.ForEach(x =>
+            List<List<string>> allPrimerIDs = new List<List<string>>();
+            List<string> allLabwares = new List<string>();
+            foreach(var labware in labwares)
             {
-                well_PrimerIDsList.Add(GetWellPrimerIDThisPlate(
-                    pipettingInfos.Where(p => p.dstLabware == x)));
+                var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware);
+                var groupedPipettingInfo = thisLabwarePipettingInfos.GroupBy(info => info.dstWellID).ToList();
+                List<string> primerIDs = new List<string>();
+                foreach (var sameGroupPipettingInfo in groupedPipettingInfo)
+                {
+                    primerIDs.Add(GetPrimerID(sameGroupPipettingInfo));
+                }
+                if (GlobalVars.LabwareWellCnt == 16)
+                {
+                    allLabwares.Add(thisLabwarePipettingInfos.First().dstLabware);
+                    allPrimerIDs.Add(primerIDs);
+                }
+                else
+                {
+                    well_PrimerIDsList.Add(Format24WellPlate(thisLabwarePipettingInfos.First().dstLabware,primerIDs));
+                }
             }
-
-            );
+            if( GlobalVars.LabwareWellCnt == 16)
+            {
+                well_PrimerIDsList.Add(Format16Pos(allLabwares, allPrimerIDs));
+            }
+            
             return well_PrimerIDsList;
         }
 
-        private List<string> GetWellPrimerIDThisPlate(IEnumerable<PipettingInfo> pipettingInfos)
+        private List<string> Format16Pos(List<string> allLabwares, List<List<string>> allPrimerIDs)
         {
             List<string> strs = new List<string>();
-            if(pipettingInfos.Count() == 0)
-                return strs;
+            string sLabwareHeader = ",";
+            allLabwares.ForEach(x =>sLabwareHeader= sLabwareHeader + x + ",");
+            strs.Add(sLabwareHeader);
+            List<string> SixteenLines = new List<string>(16);
+            for (int i = 0; i < 16; i++)
+            {
+                SixteenLines.Add(string.Format("{0},", i+1));
+                string thisLine = "";
+                foreach (List<string> eachLabwarePrimerIDs in allPrimerIDs)
+                {
+                    if(eachLabwarePrimerIDs.Count > i)
+                        thisLine += eachLabwarePrimerIDs[i] + ",";
+                }
+                SixteenLines[i] += thisLine;
+            }
+            strs.AddRange(SixteenLines);
+            return strs;
+        }
 
-            strs.Add(pipettingInfos.First().dstLabware);
+        private List<string> Format24WellPlate(string dstLabware, List<string> primerIDs)
+        {
+            List<string> strs = new List<string>();
+            strs.Add(dstLabware);
             strs.Add(",1,2,3,4,5,6,");
-            List<int> wells = pipettingInfos.GroupBy(x => x.dstWellID).Select(x => x.Key).ToList();
-            wells = wells.Where(x => x <= 24).ToList();
-            wells.Sort();
             List<string> fourLines = new List<string>(4);
             for (int i = 0; i < 4; i++)
-                fourLines.Add(string.Format("{0},",(char)('A'+i)));
-            foreach(var wellID in wells)
+                fourLines.Add(string.Format("{0},", (char)('A' + i)));
+
+            for (int i = 0; i < primerIDs.Count; i++)
             {
-                int r = wellID;
-                var pipettingInfo = pipettingInfos.Where(x => x.dstWellID == wellID).FirstOrDefault();
+                int r = i+1;
                 while (r > 4)
                     r -= 4;
-                fourLines[r - 1] += pipettingInfo.sPrimerID + ",";
+                fourLines[r - 1] += primerIDs[i] + ",";
             }
             strs.AddRange(fourLines);
             return strs;
+        }
+
+     
+
+
+   
+
+        private string GetPrimerID(IGrouping<int, PipettingInfo> sameGroupPipettingInfo)
+        {
+            if (sameGroupPipettingInfo.Count() == 1)
+                return sameGroupPipettingInfo.FirstOrDefault().sPrimerID;
+
+            string first = sameGroupPipettingInfo.First().sPrimerID;
+            string last = sameGroupPipettingInfo.Last().sPrimerID;
+            int underlinePos = first.IndexOf("_");
+            string suffixLast = last.Substring(underlinePos + 1);
+            return first + "-" + suffixLast;
+
         }
 
     
@@ -173,20 +226,28 @@ namespace genscript
         private string Format(PipettingInfo pipettingInfo, bool bReadable)
         {
             string srcWellID = bReadable ? GetWellStr(pipettingInfo.srcWellID) : pipettingInfo.srcWellID.ToString();
+            string sDstWellID = pipettingInfo.dstWellID.ToString();
+            if (GlobalVars.LabwareWellCnt == 24)
+            {
+                int rowIndex = (pipettingInfo.dstWellID - 1) / 6;
+                int colIndex = pipettingInfo.dstWellID - rowIndex * 6 - 1;
+                sDstWellID = string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
+            }
+
             if (bReadable)
                 return string.Format("{0},{1},{2},{3},{4},{5}",
                     pipettingInfo.sPrimerID,
                     pipettingInfo.srcLabware,
                     srcWellID,
                     pipettingInfo.dstLabware,
-                    pipettingInfo.dstWellID, pipettingInfo.vol);
+                    sDstWellID, pipettingInfo.vol);
 
             else
                 return string.Format("{0},{1},{2},{3},{4}",
                     pipettingInfo.srcLabware,
                     srcWellID,
                     pipettingInfo.dstLabware,
-                    pipettingInfo.dstWellID, pipettingInfo.vol);
+                    sDstWellID, pipettingInfo.vol);
         }
 
         private List<PipettingInfo> SplitPipettingInfos(List<PipettingInfo> pipettingInfos)
@@ -538,12 +599,23 @@ namespace genscript
         {
             
             int curWellID = usedWells + 1;
-            int labwareID = (curWellID + labwareCnt - 1) / labwareCnt;
+            int labwareID = (curWellID + GlobalVars.LabwareWellCnt - 1) / GlobalVars.LabwareWellCnt;
             slabwareID = string.Format("dst{0}", labwareID);
             wellID = curWellID;
-            while (wellID > labwareCnt)
-                wellID -= labwareCnt;
+            while (wellID > GlobalVars.LabwareWellCnt)
+                wellID -= GlobalVars.LabwareWellCnt;
 
+            if (GlobalVars.LabwareWellCnt == 24)
+            {
+                wellID = ConvertWellID(wellID);
+            }
+        }
+
+        private static int ConvertWellID(int wellID)
+        {
+            int colIndex = (wellID - 1) / 4;
+            int rowIndex = wellID - colIndex * 4 - 1;
+            return rowIndex * 6 + colIndex + 1;
         }
 
         //private string GenerateThisItem(ItemInfo itemInfo)

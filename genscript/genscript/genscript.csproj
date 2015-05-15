@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="Common.cs" />
     <Compile Include="EVOScriptReader.cs" />
+    <Compile Include="GlobalVars.cs" />
     <Compile Include="OdSheet.cs" />
     <Compile Include="OperationSheet.cs" />
     <Compile Include="Program.cs" />
