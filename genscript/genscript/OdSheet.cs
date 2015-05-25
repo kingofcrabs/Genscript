@@ -15,6 +15,10 @@ namespace genscript
 
         public OdSheet(string sCSVFile, int plateIndex)
         {
+            var plateName = Common.GetPlateName(sCSVFile);
+            if(eachPlateID_Vols.ContainsKey(plateName))
+                return;
+
             List<string> strs = File.ReadAllLines(sCSVFile).ToList();
             string headContent = strs[headIndex];
             strs = strs.GetRange(headIndex+1, Common.rows);
@@ -38,7 +42,7 @@ namespace genscript
                 curRowIndex++;
             }
             //eachPlateVals.Add( pos_vals.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value).Values.ToList());
-            eachPlateID_Vols.Add(Common.GetPlateName(sCSVFile),pos_vals);
+            eachPlateID_Vols.Add(plateName, pos_vals);
             Console.WriteLine("OD End");
         }
 

@@ -7,9 +7,10 @@ using System.IO;
 
 namespace genscript
 {
-    class EVOScriptReader
+    public class EVOScriptReader
     {
         static List<string> labwares = null;
+        public string sScriptFile = ConfigurationManager.AppSettings["scriptFile"];
         public List<string> Labwares
         {
             get
@@ -19,10 +20,11 @@ namespace genscript
                 return labwares;
             }
         }
-
+        
         public void Read()
         {
-            string sScriptFile = ConfigurationManager.AppSettings["scriptFile"];
+            if (!File.Exists(sScriptFile))
+                return;
             List<string> sGridDescriptions = new List<string>();
             List<string> sContents = File.ReadAllLines(sScriptFile).ToList();
             sGridDescriptions = sContents.Where(s => s.Contains("998")).ToList();

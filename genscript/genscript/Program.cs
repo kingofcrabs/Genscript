@@ -15,9 +15,17 @@ namespace genscript
         static void Main(string[] args)
         {
             GlobalVars.LabwareWellCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
-            GlobalVars.WorkingFolder = ConfigurationManager.AppSettings["GlobalVars.WorkingFolder"] + "\\";
+            GlobalVars.WorkingFolder = ConfigurationManager.AppSettings["workingFolder"] + "\\";
             Convert2CSV();
-            DoJob();
+            try
+            {
+                DoJob();
+            }
+            catch (System.Exception ex)
+            {
+            	
+            }
+            
             Console.ReadKey();
         }
 
@@ -39,7 +47,7 @@ namespace genscript
 
             if (optFiles.Count != odFiles.Count)
             {
-                Console.WriteLine("operation sheets' count doesnot equal to OD sheets' count.");
+                Console.WriteLine("operation sheets' count does not equal to OD sheets' count.");
                 Console.WriteLine("Press any key to exit!");
                 Console.ReadKey();
                 return;
@@ -118,7 +126,7 @@ namespace genscript
             {
                 Console.WriteLine(ex.Message + ex.StackTrace);
                 Console.WriteLine("Press any key to exit!");
-                return;
+                throw ex;
             }
 #endif
             string sBackupFolder = outputFolder + "backup\\";
@@ -157,10 +165,12 @@ namespace genscript
             
             if (GlobalVars.LabwareWellCnt == 16)
             {
-                var strs = well_PrimerIDsList.First().ToList();
-                for (int i = 0; i < strs.Count; i++)
+                foreach (List<string> strs in well_PrimerIDsList)
                 {
-                    readableOutput[i] += ",," + strs[i];
+                    for (int i = 0; i < strs.Count; i++)
+                    {
+                        readableOutput[i] += ",," + strs[i];
+                    }
                 }
                 return;
             }

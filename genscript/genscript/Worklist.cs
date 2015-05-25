@@ -167,16 +167,19 @@ namespace genscript
 
         private void CheckLabwareExists(List<PipettingInfo> pipettingInfos)
         {
+            EVOScriptReader scriptReader = new EVOScriptReader();
+            if (scriptReader.sScriptFile == "")
+                return;
             List<string> srcLabwares = pipettingInfos.Select(x => x.srcLabware).Distinct().ToList();
             List<string> dstLabwares = pipettingInfos.Select(x => x.dstLabware).Distinct().ToList();
             List<string> needesLabwares = srcLabwares.Union(dstLabwares).ToList();
-            EVOScriptReader EVOScriptReader = new EVOScriptReader();
-            bool exists = needesLabwares.All(x => EVOScriptReader.Labwares.Contains(x));
+            
+            bool exists = needesLabwares.All(x => scriptReader.Labwares.Contains(x));
             if (!exists)
             {
                 foreach (string needLabel in needesLabwares)
                 {
-                    if (!EVOScriptReader.Labwares.Contains(needLabel))
+                    if (!scriptReader.Labwares.Contains(needLabel))
                         throw new Exception(string.Format("Labware {0} doesnot exist in the scrpit!", needLabel));
                 }
             }

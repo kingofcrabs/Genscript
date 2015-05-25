@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Configuration;
 using System.IO;
+using System.Threading;
 
 namespace TestProject1
 {
@@ -86,7 +87,15 @@ namespace TestProject1
         private void TestDoJob(int labwareCnt)
         {
             GlobalVars.LabwareWellCnt = labwareCnt;
-            Program.DoJob();
+            try
+            {
+                Program.DoJob();
+            }
+            catch (System.Exception ex)
+            {
+                Assert.Fail(ex.Message);
+            }
+            
             string sfilePath = GlobalVars.WorkingFolder + string.Format("shouldbe\\{0}.csv",labwareCnt);
             var shouldbeLines = File.ReadAllLines(sfilePath);
             string sResultPath = GlobalVars.WorkingFolder + "Outputs\\readableOutput.csv";
@@ -107,6 +116,7 @@ namespace TestProject1
         public void Test2_DoJob24Pos()
         {
             TestDoJob(24);
+            Thread.Sleep(1200);
         }
 
         [TestMethod]
