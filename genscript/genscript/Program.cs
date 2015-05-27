@@ -85,7 +85,7 @@ namespace genscript
                 List<string> csvFormatstrs = new List<string>();
                 List<string> readablecsvFormatStrs = new List<string>();
                 List<string> optGwlFormatStrs = new List<string>();
-                List<List<string>> primerIDsOf24WellPlateList = new List<List<string>>();
+                
                 csvFormatstrs.Add(sHeader);
                 readablecsvFormatStrs.Add(sReadableHeader);
                 File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
@@ -96,6 +96,7 @@ namespace genscript
                     string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
                     File.WriteAllLines(sOutputFile, new List<string>());
                 }
+                List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
                 for (int i = 0; i < optCSVFiles.Count; i += 2, batchIndex++)
                 {
                     OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
@@ -107,15 +108,17 @@ namespace genscript
                     itemsInfo.AddRange(optSheet.Items);
                     string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex);
                     string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex);
-
-                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref primerIDsOf24WellPlateList,
+                    
+                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                         ref optGwlFormatStrs);
 
                     File.WriteAllLines(sOutputFile, tmpStrs);
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();
                 }
-                MergeReadable(readablecsvFormatStrs, primerIDsOf24WellPlateList);
+                List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
+                primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos);
+                MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
                 //File.WriteAllLines(s24WellPlatePrimerIDsFile, primerIDsOf24WellPlate);
             }

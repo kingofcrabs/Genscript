@@ -16,13 +16,13 @@ namespace genscript
         
 
         public List<string> GenerateWorklist(List<ItemInfo> itemsInfo,
-            List<string> readableOutput,ref List<List<string>>well_PrimerIDsList,
+            List<string> readableOutput, ref List<PipettingInfo> allPipettingInfos,
             ref List<string> multiDispenseOptGWL)
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
             CheckLabwareExists(pipettingInfos);
             pipettingInfos = SplitPipettingInfos(pipettingInfos);
-
+            allPipettingInfos.AddRange(pipettingInfos);
             #region generate opt multi dispense gwl
             List<PipettingInfo> bigVols =new List<PipettingInfo>();
             List<PipettingInfo> normalVols =new List<PipettingInfo>();
@@ -31,14 +31,12 @@ namespace genscript
             #endregion
             List<PipettingInfo> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
             List<string> strs = Format(optimizedPipettingInfos);
-            well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
+            //well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
             readableOutput.AddRange(Format(pipettingInfos, true));
             return strs;
         }
 
-
-       
-        private List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos)
+        public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos)
         {
             List<List<string>> well_PrimerIDsList = new List<List<string>>();
             var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
