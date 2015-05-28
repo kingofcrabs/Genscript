@@ -357,32 +357,74 @@ namespace genscript
                 
                 //List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID && x.plateName == first.plateName && x.sExtraDescription == first.sExtraDescription).ToList();
                 List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  && x.sExtraDescription == first.sExtraDescription).ToList();
-                List<StartEnd> ranges = ParseRanges(first.sExtraDescription, realStartSubIDOfThisBatch);
-                List<ItemInfo> allRangeItems = new List<ItemInfo>();
-                foreach (StartEnd range in ranges)
-                {
-                    List<ItemInfo> sameRangeItems = sameMainIDItems.Where( x=>InRange(x,range)).ToList();
-                    if( sameRangeItems.Count > 0)
-                        AddPipettingInfo4ThisRange(pipettingInfos, sameRangeItems, range);
-                    allRangeItems.AddRange(sameRangeItems);
-                }
-                allRangeItems = allRangeItems.Distinct().ToList();
                 itemsInfoCopy = itemsInfoCopy.Except(sameMainIDItems).ToList();
-                sameMainIDItems = sameMainIDItems.Except(allRangeItems).ToList();
-                foreach (var item in sameMainIDItems)
+                if (IsFixedPosRange(first.sExtraDescription))
                 {
-                    AddPipettingInfo(pipettingInfos, item, false);
-                    usedWells++;
+                    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
                 }
+                else
+                {
+                    List<StartEnd> ranges = ParseRanges(first.sExtraDescription, realStartSubIDOfThisBatch);
+                    List<ItemInfo> allRangeItems = new List<ItemInfo>();
+                    foreach (StartEnd range in ranges)
+                    {
+                        List<ItemInfo> sameRangeItems = sameMainIDItems.Where(x => InRange(x, range)).ToList();
+                        if (sameRangeItems.Count > 0)
+                            AddPipettingInfo4ThisRange(pipettingInfos, sameRangeItems, range);
+                        allRangeItems.AddRange(sameRangeItems);
+                    }
+                    allRangeItems = allRangeItems.Distinct().ToList();
+                    sameMainIDItems = sameMainIDItems.Except(allRangeItems).ToList();
+                    foreach (var item in sameMainIDItems)
+                    {
+                        AddPipettingInfo(pipettingInfos, item, false);
+                        usedWells++;
+                    }
+                }
+                
                 //firstItemOflastBatch = first;
             }
             return pipettingInfos;
+        }
+
+     
+        private bool IsFixedPosRange(string sExtraDescription)
+        {
+            if (sExtraDescription.Length > 3)
+                return false;
+
+            char firstChar = sExtraDescription.First();
+            if (firstChar < 'A' || firstChar > 'H')
+                return false;
+            sExtraDescription = sExtraDescription.Substring(1);
+            int val = 0;
+            return int.TryParse(sExtraDescription, out val);
+      
         }
 
         //private bool IsSameMeaningfulRange(string s1, string s2)
         //{
         //    return s1 == s2;
         //}
+        private void AddPipettingInfo4FixedRange(List<PipettingInfo> pipettingInfos, List<ItemInfo> sameMainIDItems)
+        {
+            var first = sameMainIDItems.First();
+            AddPipettingInfoFixedPlate(pipettingInfos, first, true, true);
+            AddPipettingInfo(pipettingInfos, first,true,true);
+            usedWells++;
+            sameMainIDItems.Remove(first);
+            
+            var last = sameMainIDItems.Last();
+            sameMainIDItems.Remove(last);
+            AddPipettingInfoFixedPlate(pipettingInfos, last, true, false);
+            AddPipettingInfo(pipettingInfos, last,true,true);
+            foreach (var item in sameMainIDItems)
+            {
+                AddPipettingInfoFixedPlate(pipettingInfos, item, false, false);
+            }
+
+        }
+
 
         private void AddPipettingInfo4ThisRange(List<PipettingInfo> pipettingInfos, 
             List<ItemInfo> sameRangeItems,
@@ -425,17 +467,48 @@ namespace genscript
             }
         }
 
+        //use extra description as wellID
+         private void AddPipettingInfoFixedPlate(List<PipettingInfo> pipettingInfos,
+            ItemInfo itemInfo,bool isOnBoundary, bool isStart)
+        {
+            int vol = isOnBoundary ? itemInfo.vol : int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]);
+
+            string dstLabware = "Mix";
+            if (isOnBoundary)
+            {
+                dstLabware = isStart ? "Start" : "End";
+            }
+
+            PipettingInfo pipettingInfo = new PipettingInfo(itemInfo.sID,
+                           itemInfo.plateName,
+                           itemInfo.srcWellID,
+                           dstLabware, Common.GetWellID(itemInfo.sExtraDescription), vol);
+            pipettingInfos.Add(pipettingInfo);
+
+        }
+
+
         private void AddPipettingInfo(List<PipettingInfo> pipettingInfos,
-            ItemInfo itemInfo, bool bOnBoundary = false)
+            ItemInfo itemInfo, bool bOnBoundary = false, bool isEPTube = false)
         {
             string dstLabware = "";
             int dstWellID = 0;
             int vol = bOnBoundary ? itemInfo.vol * 10 : itemInfo.vol;
             if (bOnBoundary)
             {
-                if (ConfigurationManager.AppSettings.AllKeys.Contains("BoundaryFixedVolume"))
+                if (isEPTube)
                 {
-                    vol = int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]);
+                    if (ConfigurationManager.AppSettings.AllKeys.Contains("EPVolume"))
+                    {
+                        vol = int.Parse(ConfigurationManager.AppSettings["EPVolume"]);
+                    }
+                }
+                else
+                {
+                    if (ConfigurationManager.AppSettings.AllKeys.Contains("BoundaryFixedVolume"))
+                    {
+                        vol = int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]);
+                    }
                 }
             }
             CalculateDestPos(usedWells, ref dstLabware, ref dstWellID);
