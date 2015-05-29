@@ -69,9 +69,8 @@ namespace TestProject1
         public void ProgramConstructorTest()
         {
             Program target = new Program();
-            
-            Assert.Inconclusive("TODO: Implement code to verify target");
         }
+
         [TestInitialize()]
         public void MyTestInitialize()
         {
@@ -98,18 +97,28 @@ namespace TestProject1
             
             string sfilePath = GlobalVars.WorkingFolder + string.Format("shouldbe\\{0}.csv",labwareCnt);
             var shouldbeLines = File.ReadAllLines(sfilePath);
-            string sResultPath = GlobalVars.WorkingFolder + "Outputs\\readableOutput.csv";
-            var allResultLines = File.ReadAllLines(sfilePath);
+            string sReadablePath = GlobalVars.WorkingFolder + "Outputs\\readableOutput.csv";
+            var allLines = File.ReadAllLines(sfilePath);
             bool bEqual = true;
             for (int i = 0; i < shouldbeLines.Length; i++)
             {
-                if (allResultLines[i] != shouldbeLines[i])
+                if (allLines[i] != shouldbeLines[i])
                 {
                     bEqual = false;
                     break;
                 }
             }
             Assert.IsTrue(bEqual);
+
+            //file count should be 1
+            string sfileCntFile = GlobalVars.WorkingFolder + "Outputs\\fileCnt.txt";
+            string fileCntContent = File.ReadAllText(sfileCntFile);
+            Assert.AreEqual(fileCntContent, "1");
+
+            //result should be true
+            string sResultFile = GlobalVars.WorkingFolder + "Outputs\\result.txt";
+            string resultFileContent = File.ReadAllText(sResultFile);
+            Assert.AreEqual(resultFileContent, "true");
         }
 
         [TestMethod]

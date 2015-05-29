@@ -224,6 +224,26 @@ namespace genscript
         {
             List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>(pipettingInfos);
             List<PipettingInfo> optimizedPipettingInfos = new List<PipettingInfo>();
+            if (Common.Mix2Plate)
+            {
+                var srcLabwares = tmpPipettingInfos.GroupBy(x => x.srcLabware).Select(x=>x.Key).ToList();
+                foreach (var srcLabware in srcLabwares)
+                {
+                    List<PipettingInfo> sameSrcPlatePipettingInfo = tmpPipettingInfos.Where(x => x.srcLabware == srcLabware).ToList();
+                    for (int i = 0; i < 96; i++)
+                    {
+                        List<PipettingInfo> expectedItems = sameSrcPlatePipettingInfo.Where(x => x.srcWellID == i + 1).ToList();
+                        if (expectedItems.Count() > 0)
+                        {
+                            var theOne = expectedItems.First();
+                            sameSrcPlatePipettingInfo.Remove(theOne);
+                            optimizedPipettingInfos.Add(theOne);
+                        }
+                    }
+                    optimizedPipettingInfos.AddRange(sameSrcPlatePipettingInfo);
+                }
+                return optimizedPipettingInfos;
+            }
             string firstPlateName = pipettingInfos.First().srcLabware;
             string secondPlateName = pipettingInfos.Last().srcLabware;
             List<string> plateNames = new List<string>();

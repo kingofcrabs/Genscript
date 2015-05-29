@@ -98,61 +98,100 @@ namespace genscript
                     mix2EPTubes = false;
                 }
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
-                if (mix2EPTubes)
+                int filesPerBatch = mix2EPTubes ?  2 : Common.PlateCnt;
+                int batchCnt = (optCSVFiles.Count + filesPerBatch - 1) / filesPerBatch;
+                File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
+                List<ItemInfo> itemsInfo = new List<ItemInfo>();
+                if (mix2EPTubes) //write dummy files
                 {
-                    #region toEP
-                    File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
-                    List<ItemInfo> itemsInfo = new List<ItemInfo>();
-                    int batchIndex = 1;
                     for (int i = 0; i < 4; i++)
                     {
                         string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
                         File.WriteAllLines(sOutputFile, new List<string>());
                     }
-                    for (int i = 0; i < optCSVFiles.Count; i += 2, batchIndex++)
-                    {
-                        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
-                        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
-                        itemsInfo.AddRange(optSheet.Items);
-
-                        optSheet = new OperationSheet(optCSVFiles[i + 1]);
-                        odSheet = new OdSheet(odCSVFiles[i + 1], i + 1);
-                        itemsInfo.AddRange(optSheet.Items);
-                        string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex);
-                        string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex);
-
-                        var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                            ref optGwlFormatStrs);
-
-                        File.WriteAllLines(sOutputFile, tmpStrs);
-                        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
-                        itemsInfo.Clear();
-                    }
-                    #endregion
                 }
-                else
-                { 
-                    #region toPlate
-                    File.WriteAllText(outputFolder + "fileCnt.txt", "1");
-                    List<ItemInfo> itemsInfo = new List<ItemInfo>();
-                    int batchIndex = 1;
-                    string sOutputFile = outputFolder + "1.csv";
-                    string sOutputGwlFile = outputFolder + "1.gwl";
-                    File.WriteAllLines(sOutputFile, new List<string>());
-                    for (int i = 0; i < optCSVFiles.Count; i++)
+                for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
+                {
+                    int startFileIndex = batchIndex * filesPerBatch;
+                    string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex + 1);
+                    string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex + 1);
+                    for (int i = 0; i < filesPerBatch; i++)
                     {
-                        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
-                        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
+                        int curFileIndex = startFileIndex + i;
+                        if (curFileIndex >= optCSVFiles.Count)
+                            break;
+                        OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
+                        OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
                         itemsInfo.AddRange(optSheet.Items);
                     }
                     var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                           ref optGwlFormatStrs);
-
+                                ref optGwlFormatStrs);
                     File.WriteAllLines(sOutputFile, tmpStrs);
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();
-                    #endregion
                 }
+
+
+                //if (mix2EPTubes)
+                //{
+                //    #region toEP
+                //    File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
+                //    List<ItemInfo> itemsInfo = new List<ItemInfo>();
+                //    int batchID = 1;
+                //    for (int i = 0; i < 4; i++)
+                //    {
+                //        string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
+                //        File.WriteAllLines(sOutputFile, new List<string>());
+                //    }
+                //    for (int i = 0; i < optCSVFiles.Count; i += 2, batchID++)
+                //    {
+                //        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
+                //        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
+                //        itemsInfo.AddRange(optSheet.Items);
+
+                //        optSheet = new OperationSheet(optCSVFiles[i + 1]);
+                //        odSheet = new OdSheet(odCSVFiles[i + 1], i + 1);
+                //        itemsInfo.AddRange(optSheet.Items);
+                //        string sOutputFile = outputFolder + string.Format("{0}.csv", batchID);
+                //        string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchID);
+
+                //        var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+                //            ref optGwlFormatStrs);
+
+                //        File.WriteAllLines(sOutputFile, tmpStrs);
+                //        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
+                //        itemsInfo.Clear();
+                //    }
+                //    #endregion
+                //}
+                //else
+                //{ 
+                //    #region toPlate
+                //    List<ItemInfo> itemsInfo = new List<ItemInfo>();
+                //    int batchCnt = (optCSVFiles.Count + Common.PlateCnt - 1) / Common.PlateCnt;
+                //    File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
+                //    for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
+                //    {
+                //        int startFileIndex = batchIndex * Common.PlateCnt;
+                //        string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex+1);
+                //        string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex+1);
+                //        for (int i = 0; i < Common.PlateCnt; i++)
+                //        {
+                //            int curFileIndex = startFileIndex + i;
+                //            if(curFileIndex >= optCSVFiles.Count)
+                //                break;
+                //            OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
+                //            OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
+                //            itemsInfo.AddRange(optSheet.Items);
+                //        }
+                //        var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+                //                    ref optGwlFormatStrs);
+                //        File.WriteAllLines(sOutputFile, tmpStrs);
+                //        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
+                //        itemsInfo.Clear();
+                //    }
+                //    #endregion
+                //}
                 List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
                 primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos);
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);

@@ -17,7 +17,6 @@ namespace genscript
 
         public static bool Mix2Plate
         {
-
             get
             {
                 bool mix2PlateFlag = ConfigurationManager.AppSettings.AllKeys.Contains("Mix2Plate");
@@ -27,6 +26,13 @@ namespace genscript
             }
         }
 
+        public static int PlateCnt
+        {
+            get
+            {
+                return int.Parse(ConfigurationManager.AppSettings["plateCnt"]);
+            }
+        }
 
         public static string GetPlateName(string sCSVFile)
         {
