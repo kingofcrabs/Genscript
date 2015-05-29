@@ -13,7 +13,9 @@ namespace genscript
         int maxVol = 200;
         static int usedWells = 0;
         HashSet<int> processedSrcWells = new HashSet<int>();
-        
+        List<string> mix2plateKeywords = new List<string>() { "Start", "End", "Mix" };
+
+
 
         public List<string> GenerateWorklist(List<ItemInfo> itemsInfo,
             List<string> readableOutput, ref List<PipettingInfo> allPipettingInfos,
@@ -36,12 +38,15 @@ namespace genscript
             return strs;
         }
 
-        public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos)
+        public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos,bool mixto96 = false)
         {
             List<List<string>> well_PrimerIDsList = new List<List<string>>();
             var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
-            List<List<string>> allPrimerIDs = new List<List<string>>();
-            List<string> allLabwares = new List<string>();
+            List<List<string>> all16PrimerIDs = new List<List<string>>();
+            List<string> all16Labwares = new List<string>();
+
+            List<List<string>> all96PrimerIDs = new List<List<string>>();
+            List<string> all96Labwares = new List<string>();
             foreach(var labware in labwares)
             {
                 var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware);
@@ -51,22 +56,54 @@ namespace genscript
                 {
                     primerIDs.Add(GetPrimerID(sameGroupPipettingInfo));
                 }
-                if (GlobalVars.LabwareWellCnt == 16)
+         
+                if(mix2plateKeywords.Contains(labware))     //96
                 {
-                    allLabwares.Add(thisLabwarePipettingInfos.First().dstLabware);
-                    allPrimerIDs.Add(primerIDs);
+                    all96Labwares.Add(labware);
+                    all96PrimerIDs.Add(primerIDs);
                 }
-                else
+                else //16 or 24
                 {
-                    well_PrimerIDsList.Add(Format24WellPlate(thisLabwarePipettingInfos.First().dstLabware,primerIDs));
+                    if (GlobalVars.LabwareWellCnt == 16)
+                    {
+                        all16Labwares.Add(labware);
+                        all16PrimerIDs.Add(primerIDs);
+                    }
+                    else
+                    {
+                        well_PrimerIDsList.Add(Format24WellPlate(labware, primerIDs));
+                    }
                 }
             }
-            if( GlobalVars.LabwareWellCnt == 16)
+            if(all16Labwares.Count > 0)
+                well_PrimerIDsList.Add(Format16Pos(all16Labwares, all16PrimerIDs));
+            return mixto96 ? Format96Pos(all96Labwares, all96PrimerIDs) : well_PrimerIDsList;
+        }
+
+        private List<List<string>> Format96Pos(List<string> all96Labwares, List<List<string>> all96PrimerIDs)
+        {
+            List<List<string>> allStrs = new List<List<string>>();
+            string header = ",1,2,3,4,5,6,7,8,9,10,11,12";
+            for (int i = 0; i < all96Labwares.Count; i++)
             {
-                well_PrimerIDsList.Add(Format16Pos(allLabwares, allPrimerIDs));
+                List<string> strs = new List<string>();
+                strs.Add(all96Labwares[i]);
+                strs.Add(header);
+                List<string> eightLines = new List<string>(8);
+                for (int line = 0; line < 8; line++)
+                    eightLines.Add(string.Format("{0},", (char)('A' + line)));
+                var primerIDs = all96PrimerIDs[i];
+                for (int j = 0; j < primerIDs.Count; j++)
+                {
+                    int r = j + 1;
+                    while (r > 8)
+                        r -= 8;
+                    eightLines[r - 1] += primerIDs[j] + ",";
+                }
+                strs.AddRange(eightLines);
+                allStrs.Add(strs);
             }
-            
-            return well_PrimerIDsList;
+            return allStrs;
         }
 
         private List<string> Format16Pos(List<string> allLabwares, List<List<string>> allPrimerIDs)
@@ -228,11 +265,19 @@ namespace genscript
         {
             string srcWellID = bReadable ? GetWellStr(pipettingInfo.srcWellID) : pipettingInfo.srcWellID.ToString();
             string sDstWellID = pipettingInfo.dstWellID.ToString();
-            if (GlobalVars.LabwareWellCnt == 24)
+
+            if(mix2plateKeywords.Contains(pipettingInfo.dstLabware)) //mix 2 96 plate
             {
-                int rowIndex = (pipettingInfo.dstWellID - 1) / 6;
-                int colIndex = pipettingInfo.dstWellID - rowIndex * 6 - 1;
-                sDstWellID = string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
+                sDstWellID = Common.GetWellDesc(pipettingInfo.dstWellID);
+            }
+            else //24 or 16
+            {
+                if (GlobalVars.LabwareWellCnt == 24)
+                {
+                    int rowIndex = (pipettingInfo.dstWellID - 1) / 6;
+                    int colIndex = pipettingInfo.dstWellID - rowIndex * 6 - 1;
+                    sDstWellID = string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
+                }
             }
 
             if (bReadable)
@@ -418,6 +463,7 @@ namespace genscript
             sameMainIDItems.Remove(last);
             AddPipettingInfoFixedPlate(pipettingInfos, last, true, false);
             AddPipettingInfo(pipettingInfos, last,true,true);
+            usedWells++;
             foreach (var item in sameMainIDItems)
             {
                 AddPipettingInfoFixedPlate(pipettingInfos, item, false, false);
@@ -471,7 +517,7 @@ namespace genscript
          private void AddPipettingInfoFixedPlate(List<PipettingInfo> pipettingInfos,
             ItemInfo itemInfo,bool isOnBoundary, bool isStart)
         {
-            int vol = isOnBoundary ? itemInfo.vol : int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]);
+            int vol = isOnBoundary ? int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]) : itemInfo.vol;
 
             string dstLabware = "Mix";
             if (isOnBoundary)

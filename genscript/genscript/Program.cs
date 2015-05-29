@@ -17,15 +17,18 @@ namespace genscript
             GlobalVars.LabwareWellCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
             GlobalVars.WorkingFolder = ConfigurationManager.AppSettings["workingFolder"] + "\\";
             Convert2CSV();
+#if DEBUG
+            DoJob();
+#else
             try
             {
                 DoJob();
             }
             catch (System.Exception ex)
             {
-            	
+                Console.Write(ex.Message + ex.StackTrace);
             }
-            
+#endif       
             Console.ReadKey();
         }
 
@@ -88,37 +91,77 @@ namespace genscript
                 
                 csvFormatstrs.Add(sHeader);
                 readablecsvFormatStrs.Add(sReadableHeader);
-                File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
-                List<ItemInfo> itemsInfo = new List<ItemInfo>();
-                int batchIndex = 1;
-                for (int i = 0; i < 4; i++)
+                bool mix2EPTubes = true;
+               
+                if (Common.Mix2Plate)
                 {
-                    string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
-                    File.WriteAllLines(sOutputFile, new List<string>());
+                    mix2EPTubes = false;
                 }
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
-                for (int i = 0; i < optCSVFiles.Count; i += 2, batchIndex++)
+                if (mix2EPTubes)
                 {
-                    OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
-                    OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
-                    itemsInfo.AddRange(optSheet.Items);
+                    #region toEP
+                    File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
+                    List<ItemInfo> itemsInfo = new List<ItemInfo>();
+                    int batchIndex = 1;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
+                        File.WriteAllLines(sOutputFile, new List<string>());
+                    }
+                    for (int i = 0; i < optCSVFiles.Count; i += 2, batchIndex++)
+                    {
+                        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
+                        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
+                        itemsInfo.AddRange(optSheet.Items);
 
-                    optSheet = new OperationSheet(optCSVFiles[i + 1]);
-                    odSheet = new OdSheet(odCSVFiles[i + 1], i + 1);
-                    itemsInfo.AddRange(optSheet.Items);
-                    string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex);
-                    string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex);
-                    
+                        optSheet = new OperationSheet(optCSVFiles[i + 1]);
+                        odSheet = new OdSheet(odCSVFiles[i + 1], i + 1);
+                        itemsInfo.AddRange(optSheet.Items);
+                        string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex);
+                        string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex);
+
+                        var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+                            ref optGwlFormatStrs);
+
+                        File.WriteAllLines(sOutputFile, tmpStrs);
+                        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
+                        itemsInfo.Clear();
+                    }
+                    #endregion
+                }
+                else
+                { 
+                    #region toPlate
+                    File.WriteAllText(outputFolder + "fileCnt.txt", "1");
+                    List<ItemInfo> itemsInfo = new List<ItemInfo>();
+                    int batchIndex = 1;
+                    string sOutputFile = outputFolder + "1.csv";
+                    string sOutputGwlFile = outputFolder + "1.gwl";
+                    File.WriteAllLines(sOutputFile, new List<string>());
+                    for (int i = 0; i < optCSVFiles.Count; i++)
+                    {
+                        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
+                        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
+                        itemsInfo.AddRange(optSheet.Items);
+                    }
                     var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                        ref optGwlFormatStrs);
+                           ref optGwlFormatStrs);
 
                     File.WriteAllLines(sOutputFile, tmpStrs);
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();
+                    #endregion
                 }
                 List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
                 primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos);
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
+                if (Common.Mix2Plate)
+                {
+                    primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos, true);
+                    MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList,true);
+                }
+                
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
                 //File.WriteAllLines(s24WellPlatePrimerIDsFile, primerIDsOf24WellPlate);
             }
@@ -163,9 +206,23 @@ namespace genscript
             return s.Substring(0, index) + "\\";
         }
 
-        static private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList)
+        static private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList, bool is96Plate = false)
         {
-            
+            int startLine = 0;
+            if (is96Plate)
+            {
+                startLine = 18;
+                foreach (List<string> well_PrimerIDs in well_PrimerIDsList)
+                {
+                    for (int i = 0; i < well_PrimerIDs.Count; i++)
+                    {
+                        readableOutput[i + startLine] += ",," + well_PrimerIDs[i];
+                    }
+                    startLine += 11;
+                }
+                return;
+            }
+
             if (GlobalVars.LabwareWellCnt == 16)
             {
                 foreach (List<string> strs in well_PrimerIDsList)
@@ -177,7 +234,7 @@ namespace genscript
                 }
                 return;
             }
-            int startLine = 0;
+
             foreach (List<string> well_PrimerIDs in well_PrimerIDsList)
             {
                 for (int i = 0; i < 6; i++)
@@ -232,6 +289,7 @@ namespace genscript
                 Workbook wbWorkbook = app.Workbooks.Open(sheetPath);
                 wbWorkbook.SaveAs(sCSVFile, XlFileFormat.xlCSV);
                 wbWorkbook.Close();
+                Console.WriteLine(sCSVFile);
             }
             app.Quit();
         }
