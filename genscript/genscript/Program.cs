@@ -114,18 +114,29 @@ namespace genscript
                 {
                     int startFileIndex = batchIndex * filesPerBatch;
                     string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex + 1);
+                    string sBatchSrcPlatesFile = outputFolder + string.Format("src_{0}.txt", batchIndex + 1);
+                    string sBatchSrcPlatesCntFile = outputFolder + string.Format("src_{0}Cnt.txt", batchIndex + 1);
+                    string sDstLabwareCntFile = outputFolder + string.Format("dst_{0}.txt", batchIndex + 1);
                     string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex + 1);
+                    List<string> batchPlates = new List<string>();
                     for (int i = 0; i < filesPerBatch; i++)
                     {
                         int curFileIndex = startFileIndex + i;
                         if (curFileIndex >= optCSVFiles.Count)
                             break;
+                        batchPlates.Add(GetSrcPlateName(optCSVFiles[curFileIndex]));
                         OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
                         OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
                         itemsInfo.AddRange(optSheet.Items);
                     }
+
+                    var before = worklist.GetDestLabwares(allPipettingInfos);
                     var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                                 ref optGwlFormatStrs);
+                    var after = worklist.GetDestLabwares(allPipettingInfos);
+                    File.WriteAllLines(sDstLabwareCntFile, after.Except(before).ToList());
+                    File.WriteAllLines(sBatchSrcPlatesFile, batchPlates);
+                    File.WriteAllText(sBatchSrcPlatesCntFile, batchPlates.Count.ToString());
                     File.WriteAllLines(sOutputFile, tmpStrs);
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();
@@ -224,6 +235,15 @@ namespace genscript
             Console.WriteLine(string.Format("Out put file has been written to folder : {0}", outputFolder));
             Console.WriteLine("version: " + strings.version);
             Console.WriteLine("Press any key to exit!");
+        }
+
+     
+
+        private static string GetSrcPlateName(string sFilePath)
+        {
+            FileInfo fileInfo = new FileInfo(sFilePath);
+            string name = fileInfo.Name;
+            return name.Substring(0, name.Length-8);
         }
 
         internal static void Convert2CSV()

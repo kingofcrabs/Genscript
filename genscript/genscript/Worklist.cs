@@ -148,11 +148,6 @@ namespace genscript
             return strs;
         }
 
-     
-
-
-   
-
         private string GetPrimerID(IGrouping<int, PipettingInfo> sameGroupPipettingInfo)
         {
             if (sameGroupPipettingInfo.Count() == 1)
@@ -422,6 +417,7 @@ namespace genscript
                 
                 //List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID && x.plateName == first.plateName && x.sExtraDescription == first.sExtraDescription).ToList();
                 List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  && x.sExtraDescription == first.sExtraDescription).ToList();
+                sameMainIDItems = CheckSequential(first,sameMainIDItems);
                 itemsInfoCopy = itemsInfoCopy.Except(sameMainIDItems).ToList();
                 if (IsFixedPosRange(first.sExtraDescription))
                 {
@@ -446,10 +442,61 @@ namespace genscript
                         usedWells++;
                     }
                 }
-                
                 //firstItemOflastBatch = first;
             }
+            if (Common.Mix2Plate)
+            {
+                AdjustLabwareLabels(pipettingInfos,true);
+                AdjustLabwareLabels(pipettingInfos, false);
+            }
             return pipettingInfos;
+        }
+
+        private void AdjustLabwareLabels(List<PipettingInfo> pipettingInfos, bool adjustSrc)
+        {
+            List<PipettingInfo> orgInfos = new List<PipettingInfo>(pipettingInfos);
+            List<string> labwares = null;
+            if (adjustSrc)
+            {
+                labwares = pipettingInfos.GroupBy(x => x.srcLabware).Select(x => x.Key).ToList();
+            }
+            else
+            {
+                labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
+            }
+            
+            pipettingInfos.Clear();
+            int curID = 1;
+            foreach (var labware in labwares)
+            {
+                var sameSrcOrDstLabwareInfos = orgInfos.Where(x => x.srcLabware == labware).ToList();
+                string prefix = adjustSrc ? "src" : "dst";
+                string map2Labware = string.Format("{0}{1}",prefix, curID);
+                if(adjustSrc)
+                    sameSrcOrDstLabwareInfos.ForEach(x => x.srcLabware = map2Labware);
+                else
+                    sameSrcOrDstLabwareInfos.ForEach(x => x.dstLabware = map2Labware);
+                pipettingInfos.AddRange(sameSrcOrDstLabwareInfos);
+                curID++;
+            }
+
+        }
+
+
+        private List<ItemInfo> CheckSequential(ItemInfo first, List<ItemInfo> sameMainIDItems)
+        {
+            List<ItemInfo> seqItems = new List<ItemInfo>();
+            int expectedID = first.subID;
+            bool bSeq = true;
+            seqItems.Add(first);
+            while (bSeq)
+            {
+                expectedID++;
+                bSeq = sameMainIDItems.Exists(x => x.subID == expectedID);
+                if (bSeq)
+                    seqItems.Add(sameMainIDItems.Find(x => x.subID == expectedID));
+            }
+            return seqItems;
         }
 
      
@@ -477,10 +524,8 @@ namespace genscript
             AddPipettingInfoFixedPlate(pipettingInfos, first, true, true);
             AddPipettingInfo(pipettingInfos, first,true,true);
             usedWells++;
-            sameMainIDItems.Remove(first);
             
             var last = sameMainIDItems.Last();
-            sameMainIDItems.Remove(last);
             AddPipettingInfoFixedPlate(pipettingInfos, last, true, false);
             AddPipettingInfo(pipettingInfos, last,true,true);
             usedWells++;
@@ -784,6 +829,16 @@ namespace genscript
             int end = int.Parse(strs[1]);
             StartEnd startEnd = new StartEnd(start + firstSubID -1 , end + firstSubID -1);
             return startEnd;
+        }
+
+
+
+        internal List<string> GetDestLabwares(List<PipettingInfo> allPipettingInfos)
+        {
+            var notMix2PlateItems = allPipettingInfos.Where(x => !mix2plateKeywords.Contains((x.dstLabware))).ToList();
+            HashSet<string> itemNames = new HashSet<string>();
+            notMix2PlateItems.ForEach(x => itemNames.Add(x.dstLabware));
+            return new List<string>(itemNames);
         }
     }
 
