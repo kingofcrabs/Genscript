@@ -46,6 +46,13 @@ namespace genscript
             return strs;
         }
 
+
+        public List<string> OptimizeThenFormat(List<PipettingInfo> pipettingInfos)
+        {
+            List<PipettingInfo> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
+            return Format(optimizedPipettingInfos);
+        }
+
         private string GetOrderString(PipettingInfo x)
         {
             Dictionary<string, string> sortMap = new Dictionary<string, string>();

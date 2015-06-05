@@ -51,6 +51,7 @@
     <Compile Include="GlobalVars.cs" />
     <Compile Include="OdSheet.cs" />
     <Compile Include="OperationSheet.cs" />
+    <Compile Include="OperationSheetQueueInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="strings.Designer.cs">

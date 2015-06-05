@@ -91,17 +91,14 @@ namespace genscript
                 
                 csvFormatstrs.Add(sHeader);
                 readablecsvFormatStrs.Add(sReadableHeader);
-                bool mix2EPTubes = true;
-               
-                if (Common.Mix2Plate)
-                {
-                    mix2EPTubes = false;
-                }
+                bool mix2EPTubes = !Common.Mix2Plate;
+
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
                 int filesPerBatch = mix2EPTubes ?  2 : Common.PlateCnt;
                 int batchCnt = (optCSVFiles.Count + filesPerBatch - 1) / filesPerBatch;
                 File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
                 List<ItemInfo> itemsInfo = new List<ItemInfo>();
+                List<OperationSheetQueueInfo> queueInfos = new List<OperationSheetQueueInfo>();
                 if (mix2EPTubes) //write dummy files
                 {
                     for (int i = 0; i < 4; i++)
@@ -109,6 +106,22 @@ namespace genscript
                         string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
                         File.WriteAllLines(sOutputFile, new List<string>());
                     }
+               
+                }
+                else //pass all itemsInfo to get whole pipettingInfo
+                {
+                    //sort with first dest mix well & subID
+                    for (int i = 0; i < optCSVFiles.Count; i++)
+                    {
+                        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
+                        OperationSheetQueueInfo queueInfo = new OperationSheetQueueInfo(optSheet, optCSVFiles[i]);
+                        queueInfos.Add(queueInfo);
+                        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
+                        itemsInfo.AddRange(optSheet.Items);
+                    }
+                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+                              ref optGwlFormatStrs);
+                    queueInfos = queueInfos.OrderBy(x => x.startDstMixWell + x.startSubID.ToString()).ToList();
                 }
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
                 {
@@ -116,93 +129,48 @@ namespace genscript
                     string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex + 1);
                     string sBatchSrcPlatesFile = outputFolder + string.Format("src_{0}.txt", batchIndex + 1);
                     string sBatchSrcPlatesCntFile = outputFolder + string.Format("src_{0}Cnt.txt", batchIndex + 1);
-                    string sDstLabwareCntFile = outputFolder + string.Format("dst_{0}.txt", batchIndex + 1);
+                    string sDstLabwaresFile = outputFolder + string.Format("dst_{0}.txt", batchIndex + 1);
                     string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex + 1);
-                    List<string> batchPlates = new List<string>();
+                    List<string> batchPlateNames = new List<string>();
+                    List<OperationSheetQueueInfo> batchPlateInfos = new List<OperationSheetQueueInfo>();
                     for (int i = 0; i < filesPerBatch; i++)
                     {
                         int curFileIndex = startFileIndex + i;
                         if (curFileIndex >= optCSVFiles.Count)
                             break;
-                        batchPlates.Add(GetSrcPlateName(optCSVFiles[curFileIndex]));
-                        OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
-                        OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
-                        itemsInfo.AddRange(optSheet.Items);
+                        var filePath = mix2EPTubes ? optCSVFiles[curFileIndex] : queueInfos[curFileIndex].filePath;
+                        batchPlateNames.Add(GetSrcPlateName(filePath));
+                        if (mix2EPTubes) //prepare itemInfos
+                        {
+                            OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
+                            OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
+                            itemsInfo.AddRange(optSheet.Items);
+                        }
+                        else //prepare the plates
+                        {
+                            batchPlateInfos.Add(queueInfos[curFileIndex]);
+                        }
                     }
 
-                    var before = worklist.GetDestLabwares(allPipettingInfos);
-                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                                ref optGwlFormatStrs);
-                    var after = worklist.GetDestLabwares(allPipettingInfos);
-                    File.WriteAllLines(sDstLabwareCntFile, after.Except(before).ToList());
-                    File.WriteAllLines(sBatchSrcPlatesFile, batchPlates);
-                    //File.WriteAllText(sBatchSrcPlatesCntFile, batchPlates.Count.ToString());
-                    File.WriteAllLines(sOutputFile, tmpStrs);
-                    File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
-                    itemsInfo.Clear();
+                    if (mix2EPTubes)
+                    {
+                        var pipettingStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+                                    ref optGwlFormatStrs);
+                        File.WriteAllLines(sOutputFile, pipettingStrs);
+                        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
+                        itemsInfo.Clear();
+                    }
+                    else
+                    {
+                        var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
+                        var pipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos);
+                        var destLabwares = worklist.GetDestLabwares(allPipettingInfos);
+                        File.WriteAllLines(sDstLabwaresFile, destLabwares);
+                        File.WriteAllLines(sBatchSrcPlatesFile, batchPlateNames);
+                        File.WriteAllLines(sOutputFile, pipettingStrs);
+                    }
                 }
-
-
-                //if (mix2EPTubes)
-                //{
-                //    #region toEP
-                //    File.WriteAllText(outputFolder + "fileCnt.txt", (optCSVFiles.Count / 2).ToString());
-                //    List<ItemInfo> itemsInfo = new List<ItemInfo>();
-                //    int batchID = 1;
-                //    for (int i = 0; i < 4; i++)
-                //    {
-                //        string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
-                //        File.WriteAllLines(sOutputFile, new List<string>());
-                //    }
-                //    for (int i = 0; i < optCSVFiles.Count; i += 2, batchID++)
-                //    {
-                //        OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
-                //        OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
-                //        itemsInfo.AddRange(optSheet.Items);
-
-                //        optSheet = new OperationSheet(optCSVFiles[i + 1]);
-                //        odSheet = new OdSheet(odCSVFiles[i + 1], i + 1);
-                //        itemsInfo.AddRange(optSheet.Items);
-                //        string sOutputFile = outputFolder + string.Format("{0}.csv", batchID);
-                //        string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchID);
-
-                //        var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                //            ref optGwlFormatStrs);
-
-                //        File.WriteAllLines(sOutputFile, tmpStrs);
-                //        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
-                //        itemsInfo.Clear();
-                //    }
-                //    #endregion
-                //}
-                //else
-                //{ 
-                //    #region toPlate
-                //    List<ItemInfo> itemsInfo = new List<ItemInfo>();
-                //    int batchCnt = (optCSVFiles.Count + Common.PlateCnt - 1) / Common.PlateCnt;
-                //    File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
-                //    for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
-                //    {
-                //        int startFileIndex = batchIndex * Common.PlateCnt;
-                //        string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex+1);
-                //        string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex+1);
-                //        for (int i = 0; i < Common.PlateCnt; i++)
-                //        {
-                //            int curFileIndex = startFileIndex + i;
-                //            if(curFileIndex >= optCSVFiles.Count)
-                //                break;
-                //            OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
-                //            OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
-                //            itemsInfo.AddRange(optSheet.Items);
-                //        }
-                //        var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                //                    ref optGwlFormatStrs);
-                //        File.WriteAllLines(sOutputFile, tmpStrs);
-                //        File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
-                //        itemsInfo.Clear();
-                //    }
-                //    #endregion
-                //}
+                
                 List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
                 primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos);
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
@@ -235,6 +203,11 @@ namespace genscript
             Console.WriteLine(string.Format("Out put file has been written to folder : {0}", outputFolder));
             Console.WriteLine("version: " + strings.version);
             Console.WriteLine("Press any key to exit!");
+        }
+
+        private static List<PipettingInfo> GetPipettingInfosThisBatch(List<PipettingInfo> allPipettingInfos, List<OperationSheetQueueInfo> batchPlateInfos)
+        {
+            throw new NotImplementedException();
         }
 
      
