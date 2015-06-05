@@ -27,11 +27,11 @@ namespace genscript
             pipettingInfos = SplitPipettingInfos(pipettingInfos);
             allPipettingInfos.AddRange(CloneInfos(pipettingInfos));
 
-            if (Common.Mix2Plate)
-            {
-                AdjustLabwareLabels(pipettingInfos, true);
-                AdjustLabwareLabels(pipettingInfos, false);
-            }
+            //if (Common.Mix2Plate)
+            //{
+            //    AdjustLabwareLabels(pipettingInfos, true);
+            //    AdjustLabwareLabels(pipettingInfos, false);
+            //}
 
             #region generate opt multi dispense gwl
             List<PipettingInfo> bigVols =new List<PipettingInfo>();
@@ -489,7 +489,7 @@ namespace genscript
             return pipettingInfos;
         }
 
-        private void AdjustLabwareLabels(List<PipettingInfo> pipettingInfos, bool adjustSrc)
+        public void AdjustLabwareLabels(List<PipettingInfo> pipettingInfos, bool adjustSrc)
         {
             List<PipettingInfo> orgInfos = new List<PipettingInfo>(pipettingInfos);
             List<string> labwares = null;

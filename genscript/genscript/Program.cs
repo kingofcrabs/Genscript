@@ -121,7 +121,7 @@ namespace genscript
                     }
                     var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                               ref optGwlFormatStrs);
-                    queueInfos = queueInfos.OrderBy(x => x.startDstMixWell + x.startSubID.ToString()).ToList();
+                    queueInfos = queueInfos.OrderBy(x => x.startDstMixWell * 1000 + x.startSubID).ToList();
                 }
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
                 {
@@ -163,8 +163,10 @@ namespace genscript
                     else
                     {
                         var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
+                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos, true);
+                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos, false);
                         var pipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos);
-                        var destLabwares = worklist.GetDestLabwares(allPipettingInfos);
+                        var destLabwares = worklist.GetDestLabwares(thisBatchPipettingInfos);
                         File.WriteAllLines(sDstLabwaresFile, destLabwares);
                         File.WriteAllLines(sBatchSrcPlatesFile, batchPlateNames);
                         File.WriteAllLines(sOutputFile, pipettingStrs);
@@ -207,7 +209,26 @@ namespace genscript
 
         private static List<PipettingInfo> GetPipettingInfosThisBatch(List<PipettingInfo> allPipettingInfos, List<OperationSheetQueueInfo> batchPlateInfos)
         {
-            throw new NotImplementedException();
+            return allPipettingInfos.Where(x => InOneOfTheRanges(x.sPrimerID, batchPlateInfos)).ToList();
+        }
+
+        private static bool InOneOfTheRanges(string sPrimerID, List<OperationSheetQueueInfo> batchPlateInfos)
+        {
+            List<string> strs = sPrimerID.Split('_').ToList();
+            int subID = int.Parse(strs[1]);
+            foreach(var queueInfo in batchPlateInfos)
+            {
+                if(InRange(subID,queueInfo))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool InRange(int subID, OperationSheetQueueInfo queueInfo)
+        {
+            return  subID >= queueInfo.startSubID && subID <= queueInfo.endSubID;
         }
 
      
