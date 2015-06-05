@@ -136,7 +136,7 @@ namespace genscript
                     var after = worklist.GetDestLabwares(allPipettingInfos);
                     File.WriteAllLines(sDstLabwareCntFile, after.Except(before).ToList());
                     File.WriteAllLines(sBatchSrcPlatesFile, batchPlates);
-                    File.WriteAllText(sBatchSrcPlatesCntFile, batchPlates.Count.ToString());
+                    //File.WriteAllText(sBatchSrcPlatesCntFile, batchPlates.Count.ToString());
                     File.WriteAllLines(sOutputFile, tmpStrs);
                     File.WriteAllLines(sOutputGwlFile, optGwlFormatStrs);
                     itemsInfo.Clear();

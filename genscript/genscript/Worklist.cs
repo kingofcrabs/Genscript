@@ -22,9 +22,17 @@ namespace genscript
             ref List<string> multiDispenseOptGWL)
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
+            pipettingInfos = pipettingInfos.OrderBy(x => GetOrderString(x)).ToList();
             CheckLabwareExists(pipettingInfos);
             pipettingInfos = SplitPipettingInfos(pipettingInfos);
-            allPipettingInfos.AddRange(pipettingInfos);
+            allPipettingInfos.AddRange(CloneInfos(pipettingInfos));
+
+            if (Common.Mix2Plate)
+            {
+                AdjustLabwareLabels(pipettingInfos, true);
+                AdjustLabwareLabels(pipettingInfos, false);
+            }
+
             #region generate opt multi dispense gwl
             List<PipettingInfo> bigVols =new List<PipettingInfo>();
             List<PipettingInfo> normalVols =new List<PipettingInfo>();
@@ -36,6 +44,29 @@ namespace genscript
             //well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
             readableOutput.AddRange(Format(pipettingInfos, true));
             return strs;
+        }
+
+        private string GetOrderString(PipettingInfo x)
+        {
+            Dictionary<string, string> sortMap = new Dictionary<string, string>();
+            sortMap.Add("Mix", "01");
+            sortMap.Add("Start", "02");
+            sortMap.Add("End", "03");
+            string mappedLabware = x.dstLabware;
+            if (sortMap.ContainsKey(mappedLabware))
+                mappedLabware = sortMap[mappedLabware];
+            else //dst01 dst02...
+                mappedLabware = mappedLabware.Replace("dst", "8");
+                
+            string orderString = x.srcLabware + string.Format("{0:D2}", x.srcWellID) + mappedLabware + string.Format("{0:D2}", x.dstWellID);
+            return orderString;
+        }
+
+        private IEnumerable<PipettingInfo> CloneInfos(List<PipettingInfo> pipettingInfos)
+        {
+            List<PipettingInfo> clonedInfos = new List<PipettingInfo>();
+            pipettingInfos.ForEach(x=>clonedInfos.Add(new PipettingInfo(x)));
+            return clonedInfos;
         }
 
         public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos,bool mixto96 = false)
@@ -228,9 +259,12 @@ namespace genscript
                     for (int i = 0; i < 96; i++)
                     {
                         List<PipettingInfo> expectedItems = sameSrcPlatePipettingInfo.Where(x => x.srcWellID == i + 1).ToList();
-                        if (expectedItems.Count() > 0)
+                        if (expectedItems.Count == 0)
+                            continue;
+                        var theOne = expectedItems.OrderBy(x=>GetOrderString(x)).First();
+                        if (theOne != null)
                         {
-                            var theOne = expectedItems.First();
+                            //var theOne = expectedItems.First();
                             sameSrcPlatePipettingInfo.Remove(theOne);
                             optimizedPipettingInfos.Add(theOne);
                         }
@@ -444,11 +478,7 @@ namespace genscript
                 }
                 //firstItemOflastBatch = first;
             }
-            if (Common.Mix2Plate)
-            {
-                AdjustLabwareLabels(pipettingInfos,true);
-                AdjustLabwareLabels(pipettingInfos, false);
-            }
+          
             return pipettingInfos;
         }
 
@@ -462,22 +492,31 @@ namespace genscript
             }
             else
             {
-                labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
+                labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).Where(x=>!mix2plateKeywords.Contains(x)).ToList();
             }
-            
-            pipettingInfos.Clear();
             int curID = 1;
             foreach (var labware in labwares)
             {
-                var sameSrcOrDstLabwareInfos = orgInfos.Where(x => x.srcLabware == labware).ToList();
                 string prefix = adjustSrc ? "src" : "dst";
                 string map2Labware = string.Format("{0}{1}",prefix, curID);
-                if(adjustSrc)
-                    sameSrcOrDstLabwareInfos.ForEach(x => x.srcLabware = map2Labware);
-                else
-                    sameSrcOrDstLabwareInfos.ForEach(x => x.dstLabware = map2Labware);
-                pipettingInfos.AddRange(sameSrcOrDstLabwareInfos);
                 curID++;
+                for (int i = 0; i < pipettingInfos.Count; i++)
+                {
+                    if (adjustSrc)
+                    {
+                        if (pipettingInfos[i].srcLabware == labware)
+                        {
+                            pipettingInfos[i].srcLabware = map2Labware;
+                        }
+                    }
+                    else
+                    {
+                        if (pipettingInfos[i].dstLabware == labware)
+                        {
+                            pipettingInfos[i].dstLabware = map2Labware;
+                        }
+                    }
+                }
             }
 
         }
