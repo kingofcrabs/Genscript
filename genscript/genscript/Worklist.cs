@@ -489,13 +489,13 @@ namespace genscript
             return pipettingInfos;
         }
 
-        public void AdjustLabwareLabels(List<PipettingInfo> pipettingInfos, bool adjustSrc)
+        public void AdjustLabwareLabels(List<PipettingInfo> pipettingInfos,List<string> batchPlateNames, bool adjustSrc)
         {
             List<PipettingInfo> orgInfos = new List<PipettingInfo>(pipettingInfos);
             List<string> labwares = null;
             if (adjustSrc)
             {
-                labwares = pipettingInfos.GroupBy(x => x.srcLabware).Select(x => x.Key).ToList();
+                labwares = batchPlateNames;                
             }
             else
             {

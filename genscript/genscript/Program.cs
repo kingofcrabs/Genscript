@@ -121,7 +121,7 @@ namespace genscript
                     }
                     var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                               ref optGwlFormatStrs);
-                    queueInfos = queueInfos.OrderBy(x => x.startDstMixWell * 1000 + x.startSubID).ToList();
+                    queueInfos = queueInfos.OrderBy(x => Common.GetWellID( x.startDstMixWell)*1000  + x.startSubID).ToList();
                 }
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
                 {
@@ -163,8 +163,8 @@ namespace genscript
                     else
                     {
                         var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
-                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos, true);
-                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos, false);
+                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, true);
+                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, false);
                         var pipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos);
                         var destLabwares = worklist.GetDestLabwares(thisBatchPipettingInfos);
                         File.WriteAllLines(sDstLabwaresFile, destLabwares);

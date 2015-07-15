@@ -10,15 +10,15 @@ namespace genscript
         public string filePath;
         public int startSubID;
         public int endSubID;
-        public int startDstMixWell;
+        public string startDstMixWell;
+    
         public OperationSheetQueueInfo(OperationSheet optSheet, string filePath)
         {
             // TODO: Complete member initialization
-            startDstMixWell = Common.GetWellID(optSheet.Items[0].sExtraDescription);
             this.filePath = filePath;
             startSubID = optSheet.Items.First().subID;
             endSubID = optSheet.Items.Last().subID;
+            startDstMixWell = optSheet.Items.First().sExtraDescription;
         }
-       
     }
 }
