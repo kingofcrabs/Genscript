@@ -23,7 +23,11 @@ namespace genscript
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
             pipettingInfos = pipettingInfos.OrderBy(x => GetOrderString(x)).ToList();
+#if DEBUG
+
+#else
             CheckLabwareExists(pipettingInfos);
+#endif
             pipettingInfos = SplitPipettingInfos(pipettingInfos);
             allPipettingInfos.AddRange(CloneInfos(pipettingInfos));
 
