@@ -56,5 +56,21 @@ namespace genscript
             int colIndex = int.Parse(sWell.Substring(1))- 1;
             return GetWellID(rowIndex, colIndex);
         }
+
+        internal static bool IsInvalidWellID(string s)
+        {
+            if (s.Length > 3)
+                return true;
+            int wellID = -1;
+            try
+            {
+                wellID = GetWellID(s);
+            }
+            catch(Exception ex)
+            {
+                return true;
+            }
+            return wellID < 0 || wellID > 96;
+        }
     }
 }

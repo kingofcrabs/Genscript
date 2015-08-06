@@ -17,7 +17,11 @@ namespace genscript
             // TODO: Complete member initialization
             this.filePath = filePath;
             startSubID = optSheet.Items.First().subID;
-            endSubID = optSheet.Items.Last().subID;
+            var validItems = optSheet.Items.Where(x=>!Common.IsInvalidWellID(x.sExtraDescription)).ToList();
+            if (validItems.Count > 0)
+                endSubID = validItems.Last().subID;
+            else
+                endSubID = -1;
             startDstMixWell = optSheet.Items.First().sExtraDescription;
         }
     }

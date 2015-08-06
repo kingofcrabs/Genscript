@@ -43,7 +43,8 @@ namespace genscript
             SplitByVolume(pipettingInfos,bigVols,ref normalVols);
             multiDispenseOptGWL = GenerateWorklist(bigVols, normalVols);
             #endregion
-            List<PipettingInfo> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
+            //pipettingInfos = pipettingInfos.OrderBy(x => x.srcLabware + x.sPrimerID).ToList();
+            List<PipettingInfo> optimizedPipettingInfos = OptimizeCommandsSinglePlate(pipettingInfos);
             List<string> strs = Format(optimizedPipettingInfos);
             //well_PrimerIDsList.AddRange(GetWellPrimerID(pipettingInfos));
             readableOutput.AddRange(Format(pipettingInfos, true));
@@ -51,10 +52,12 @@ namespace genscript
         }
 
 
-        public List<string> OptimizeThenFormat(List<PipettingInfo> pipettingInfos)
+        public List<List<string>> OptimizeThenFormat(List<PipettingInfo> pipettingInfos)
         {
-            List<PipettingInfo> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
-            return Format(optimizedPipettingInfos);
+            List<List<PipettingInfo>> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
+            List<List<string>> eachPlatePipettingInfos = new List<List<string>>();
+            optimizedPipettingInfos.ForEach(x => eachPlatePipettingInfos.Add(Format(x)));
+            return eachPlatePipettingInfos;
         }
 
         private string GetOrderString(PipettingInfo x)
@@ -67,9 +70,20 @@ namespace genscript
             if (sortMap.ContainsKey(mappedLabware))
                 mappedLabware = sortMap[mappedLabware];
             else //dst01 dst02...
-                mappedLabware = mappedLabware.Replace("dst", "8");
+            {
                 
-            string orderString = x.srcLabware + string.Format("{0:D2}", x.srcWellID) + mappedLabware + string.Format("{0:D2}", x.dstWellID);
+                if(mappedLabware.Contains("dst"))
+                {
+                    mappedLabware = mappedLabware.Replace("dst", "");
+                    int val = int.Parse(mappedLabware);
+                    if(val < 10)
+                    {
+                        mappedLabware += "x";
+                    }
+                }
+            }
+
+            string orderString = mappedLabware + string.Format("{0:D2}", x.dstWellID) + x.srcLabware  + string.Format("{0:D2}", x.srcWellID) ;
             return orderString;
         }
 
@@ -82,6 +96,7 @@ namespace genscript
 
         public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos,bool mixto96 = false)
         {
+            
             List<List<string>> well_PrimerIDsList = new List<List<string>>();
             var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
             List<List<string>> all16PrimerIDs = new List<List<string>>();
@@ -93,8 +108,9 @@ namespace genscript
             {
                 var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware);
                 var groupedPipettingInfo = thisLabwarePipettingInfos.GroupBy(info => info.dstWellID).ToList();
+                List<IGrouping<int,PipettingInfo>> sortedPipettingInfo = groupedPipettingInfo.OrderBy(x => x.First().sPrimerID).ToList();
                 List<string> primerIDs = new List<string>();
-                foreach (var sameGroupPipettingInfo in groupedPipettingInfo)
+                foreach (var sameGroupPipettingInfo in sortedPipettingInfo)
                 {
                     primerIDs.Add(GetPrimerID(sameGroupPipettingInfo));
                 }
@@ -190,13 +206,13 @@ namespace genscript
             return strs;
         }
 
-        private string GetPrimerID(IGrouping<int, PipettingInfo> sameGroupPipettingInfo)
+        private string GetPrimerID(IGrouping<int,PipettingInfo> sameGroupPipettingInfo)
         {
             if (sameGroupPipettingInfo.Count() == 1)
                 return sameGroupPipettingInfo.FirstOrDefault().sPrimerID;
-
-            string first = sameGroupPipettingInfo.First().sPrimerID;
-            string last = sameGroupPipettingInfo.Last().sPrimerID;
+            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => x.sPrimerID).ToList();
+            string first = pipettingsInfo.First().sPrimerID;
+            string last = pipettingsInfo.Last().sPrimerID;
             int underlinePos = first.IndexOf("_");
             string suffixLast = last.Substring(underlinePos + 1);
             return first + "-" + suffixLast;
@@ -257,33 +273,11 @@ namespace genscript
             }
         }
 
-        private List<PipettingInfo> OptimizeCommands(List<PipettingInfo> pipettingInfos)
+        private List<PipettingInfo> OptimizeCommandsSinglePlate(List<PipettingInfo> pipettingInfos)
         {
             List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>(pipettingInfos);
-            List<PipettingInfo> optimizedPipettingInfos = new List<PipettingInfo>();
-            if (Common.Mix2Plate)
-            {
-                var srcLabwares = tmpPipettingInfos.GroupBy(x => x.srcLabware).Select(x=>x.Key).ToList();
-                foreach (var srcLabware in srcLabwares)
-                {
-                    List<PipettingInfo> sameSrcPlatePipettingInfo = tmpPipettingInfos.Where(x => x.srcLabware == srcLabware).ToList();
-                    for (int i = 0; i < 96; i++)
-                    {
-                        List<PipettingInfo> expectedItems = sameSrcPlatePipettingInfo.Where(x => x.srcWellID == i + 1).ToList();
-                        if (expectedItems.Count == 0)
-                            continue;
-                        var theOne = expectedItems.OrderBy(x=>GetOrderString(x)).First();
-                        if (theOne != null)
-                        {
-                            //var theOne = expectedItems.First();
-                            sameSrcPlatePipettingInfo.Remove(theOne);
-                            optimizedPipettingInfos.Add(theOne);
-                        }
-                    }
-                    optimizedPipettingInfos.AddRange(sameSrcPlatePipettingInfo);
-                }
-                return optimizedPipettingInfos;
-            }
+            List<PipettingInfo> allOptimizedPipettingInfos = new List<PipettingInfo>();
+           
             string firstPlateName = pipettingInfos.First().srcLabware;
             string secondPlateName = pipettingInfos.Last().srcLabware;
             List<string> plateNames = new List<string>();
@@ -301,14 +295,47 @@ namespace genscript
                         if (!tmpPipettingInfos.Exists(x => x.srcWellID == ID && x.srcLabware == curPlateName))
                             continue;
                         var pipettingInfo = tmpPipettingInfos.First(x => x.srcWellID == ID && x.srcLabware == curPlateName);
-                        
-                        optimizedPipettingInfos.Add(pipettingInfo);
+
+                        allOptimizedPipettingInfos.Add(pipettingInfo);
                         tmpPipettingInfos = tmpPipettingInfos.Except(new List<PipettingInfo>() { pipettingInfo }).ToList();
                     }
                 }
             }
-            optimizedPipettingInfos.AddRange(tmpPipettingInfos.OrderBy( x=> x.srcLabware + x.srcWellID.ToString()));
-            return optimizedPipettingInfos;
+            allOptimizedPipettingInfos.AddRange(tmpPipettingInfos.OrderBy(x => x.srcLabware + x.srcWellID.ToString()));
+            return allOptimizedPipettingInfos;
+        }
+
+        private List<List<PipettingInfo>> OptimizeCommands(List<PipettingInfo> pipettingInfos)
+        {
+            List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>(pipettingInfos);
+            List<List<PipettingInfo>> allOptimizedPipettingInfos = new List<List<PipettingInfo>>();
+            if (Common.Mix2Plate)
+            {
+                var srcLabwares = tmpPipettingInfos.GroupBy(x => x.srcLabware).Select(x => x.Key).ToList();
+                foreach (var srcLabware in srcLabwares)
+                {
+                    List<PipettingInfo> sameSrcPlatePipettingInfo = tmpPipettingInfos.Where(x => x.srcLabware == srcLabware).ToList();
+                    List<PipettingInfo> thisPlateOptPipettingInfos = new List<PipettingInfo>();
+                    for (int i = 0; i < 96; i++)
+                    {
+                        List<PipettingInfo> expectedItems = sameSrcPlatePipettingInfo.Where(x => x.srcWellID == i + 1).ToList();
+                        if (expectedItems.Count == 0)
+                            continue;
+                        var theOne = expectedItems.OrderBy(x => GetOrderString(x)).First();
+                        if (theOne != null)
+                        {
+                            //var theOne = expectedItems.First();
+                            sameSrcPlatePipettingInfo.Remove(theOne);
+                            thisPlateOptPipettingInfos.Add(theOne);
+                        }
+                    }
+                    thisPlateOptPipettingInfos.AddRange(sameSrcPlatePipettingInfo);
+                    allOptimizedPipettingInfos.Add(thisPlateOptPipettingInfos);
+                }
+                return allOptimizedPipettingInfos;
+            }
+            else
+                throw new Exception("you must be kidding me, I am only for mix2Plate");
         }
 
         private List<string> Format(List<PipettingInfo> pipettingInfos,bool bReadable = false)
@@ -464,9 +491,13 @@ namespace genscript
                 List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  && x.sExtraDescription == first.sExtraDescription).ToList();
                 sameMainIDItems = CheckSequential(first,sameMainIDItems);
                 itemsInfoCopy = itemsInfoCopy.Except(sameMainIDItems).ToList();
-                if (IsFixedPosRange(first.sExtraDescription))
+                if (Common.Mix2Plate)
                 {
-                    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
+                    bool isValidPos = IsFixedPosRange(first.sExtraDescription);
+                    if (isValidPos)
+                        AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
+                    else
+                        Console.WriteLine(string.Format("invalid extra description found:{0}",first.sExtraDescription));
                 }
                 else
                 {

@@ -121,6 +121,7 @@ namespace genscript
                     }
                     var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                               ref optGwlFormatStrs);
+                    queueInfos.RemoveAll(x => Common.IsInvalidWellID(x.startDstMixWell));
                     queueInfos = queueInfos.OrderBy(x => Common.GetWellID( x.startDstMixWell)*1000  + x.startSubID).ToList();
                 }
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
@@ -136,7 +137,7 @@ namespace genscript
                     for (int i = 0; i < filesPerBatch; i++)
                     {
                         int curFileIndex = startFileIndex + i;
-                        if (curFileIndex >= optCSVFiles.Count)
+                        if (curFileIndex >= queueInfos.Count)
                             break;
                         var filePath = mix2EPTubes ? optCSVFiles[curFileIndex] : queueInfos[curFileIndex].filePath;
                         batchPlateNames.Add(GetSrcPlateName(filePath));
@@ -165,11 +166,20 @@ namespace genscript
                         var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
                         worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, true);
                         worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, false);
-                        var pipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos);
+                        var eachPlatePipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos);
                         var destLabwares = worklist.GetDestLabwares(thisBatchPipettingInfos);
                         File.WriteAllLines(sDstLabwaresFile, destLabwares);
                         File.WriteAllLines(sBatchSrcPlatesFile, batchPlateNames);
-                        File.WriteAllLines(sOutputFile, pipettingStrs);
+                        for (int i = 0; i < eachPlatePipettingStrs.Count;i++ )
+                        {
+                            string sOutputBatchFolder = outputFolder + string.Format("batch{0}\\", batchIndex + 1);
+                            if (!Directory.Exists(sOutputBatchFolder))
+                            {
+                                Directory.CreateDirectory(sOutputBatchFolder);
+                            }
+                            File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.csv",i+1), eachPlatePipettingStrs[i]);
+                        }
+                            
                     }
                 }
                 
@@ -178,10 +188,9 @@ namespace genscript
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
                 if (Common.Mix2Plate)
                 {
-                    primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos, true);
-                    MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList,true);
+                    primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos, Common.Mix2Plate);
+                    MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList, Common.Mix2Plate);
                 }
-                
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
                 //File.WriteAllLines(s24WellPlatePrimerIDsFile, primerIDsOf24WellPlate);
             }
@@ -201,15 +210,22 @@ namespace genscript
             string sBackupFile = sBackupFolder + DateTime.Now.ToString("yyMMdd_hhmmss") + "_output.csv";
             string sBackupReadableFile = sBackupFolder + DateTime.Now.ToString("yyMMdd_hhmmss") + "_readableoutput.csv";
             File.Copy(sReadableOutputFile, sBackupReadableFile);
+            string sVersion = strings.version;
             File.WriteAllText(sResultFile, "true");
             Console.WriteLine(string.Format("Out put file has been written to folder : {0}", outputFolder));
-            Console.WriteLine("version: " + strings.version);
+            Console.WriteLine("version: " + sVersion);
             Console.WriteLine("Press any key to exit!");
         }
 
         private static List<PipettingInfo> GetPipettingInfosThisBatch(List<PipettingInfo> allPipettingInfos, List<OperationSheetQueueInfo> batchPlateInfos)
         {
-            return allPipettingInfos.Where(x => InOneOfTheRanges(x.sPrimerID, batchPlateInfos)).ToList();
+            List<PipettingInfo>  batchPipettigInfos = allPipettingInfos.Where(x => InOneOfTheRanges(x.sPrimerID, batchPlateInfos)).ToList();
+            List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>();
+            foreach (var pipettingInfo in batchPipettigInfos)
+            {
+                tmpPipettingInfos.Add(new PipettingInfo(pipettingInfo));
+            }
+            return tmpPipettingInfos;
         }
 
         private static bool InOneOfTheRanges(string sPrimerID, List<OperationSheetQueueInfo> batchPlateInfos)
