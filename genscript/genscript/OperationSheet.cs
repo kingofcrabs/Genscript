@@ -169,7 +169,8 @@ namespace genscript
         public string dstLabware;
         public int dstWellID;
         public double vol;
-        
+        public int orgDstWellID;
+
         public PipettingInfo(string sPrimerID,string srcLabware,
             int srcWell, string dstLabware, int dstWell, double v)
         {
@@ -179,6 +180,7 @@ namespace genscript
             this.srcWellID = srcWell;
             this.dstWellID = dstWell;
             this.vol = v;
+            orgDstWellID = -1;
         }
 
         public PipettingInfo(PipettingInfo pipettingInfo)
@@ -189,6 +191,7 @@ namespace genscript
             srcWellID = pipettingInfo.srcWellID;
             dstWellID = pipettingInfo.dstWellID;
             vol = pipettingInfo.vol;
+            orgDstWellID = pipettingInfo.orgDstWellID;
         }
     }
 }

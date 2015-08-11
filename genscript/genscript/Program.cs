@@ -179,6 +179,7 @@ namespace genscript
                             }
                             File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.csv",i+1), eachPlatePipettingStrs[i]);
                         }
+                        File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingStrs.Count);
                             
                     }
                 }
