@@ -91,12 +91,34 @@ namespace genscript
 
      
 
-        public List<List<string>> OptimizeThenFormat(List<PipettingInfo> pipettingInfos)
+        public List<List<string>> OptimizeThenFormat(List<PipettingInfo> pipettingInfos,bool generateGWL)
         {
             List<List<PipettingInfo>> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
             List<List<string>> eachPlatePipettingInfos = new List<List<string>>();
-            optimizedPipettingInfos.ForEach(x => eachPlatePipettingInfos.Add(Format(x)));
+            if(generateGWL)
+                optimizedPipettingInfos.ForEach(x => eachPlatePipettingInfos.Add(GenerateGWL(x)));
+            else
+                optimizedPipettingInfos.ForEach(x => eachPlatePipettingInfos.Add(Format(x)));
+
             return eachPlatePipettingInfos;
+        }
+
+        private List<string> GenerateGWL(List<PipettingInfo> pipettingInfos)
+        {
+            List<string> strs = new List<string>();
+            pipettingInfos.ForEach(x=>strs.AddRange(GenerateGWL(x)));
+            return strs;
+        }
+
+        private List<string> GenerateGWL(PipettingInfo pipettingInfo)
+        {
+            List<string> strs = new List<string>();
+            string asp = GetAspirate(pipettingInfo.srcLabware, pipettingInfo.srcWellID, pipettingInfo.vol);
+            string disp = GetDispense(pipettingInfo.dstLabware, pipettingInfo.dstWellID, pipettingInfo.vol);
+            strs.Add(asp);
+            strs.Add(disp);
+            strs.Add("W;");
+            return strs;
         }
 
         private int GetOrderString(PipettingInfo x)
@@ -430,7 +452,7 @@ namespace genscript
             else
                 return string.Format("{0},{1},{2},{3},{4},{5}",
                     pipettingInfo.srcLabware,
-                    srcWellID,
+                    Common.GetWellDesc(pipettingInfo.srcWellID),
                     pipettingInfo.dstLabware,
                     sDstWellID, pipettingInfo.vol,pipettingInfo.sPrimerID);
         }
@@ -534,11 +556,11 @@ namespace genscript
             List<PipettingInfo> pipettingInfos = new List<PipettingInfo>();
             List<ItemInfo> itemsInfoCopy = new List<ItemInfo>(itemsInfo);
             FillVols(itemsInfoCopy);
-            if(Common.Mix2Plate)
-            {
-                int nRemovedCnt = itemsInfo.RemoveAll(x => !IsFixedPosRange(x.sExtraDescription));
-            }
-            itemsInfoCopy = itemsInfo.OrderBy(x =>100* Common.GetWellID(x.sExtraDescription)+x.subID).ToList();
+            //if(Common.Mix2Plate)
+            //{
+            //    int nRemovedCnt = itemsInfo.RemoveAll(x => !IsFixedPosRange(x.sExtraDescription));
+            //    itemsInfoCopy = itemsInfo.OrderBy(x => 100 * Common.GetWellID(x.sExtraDescription) + x.subID).ToList();
+            //}
             while (itemsInfoCopy.Count > 0)
             {
                 var first = itemsInfoCopy.First();
@@ -548,11 +570,11 @@ namespace genscript
                 List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  && x.sExtraDescription == first.sExtraDescription).ToList();
                 sameMainIDItems = CheckSequential(first,sameMainIDItems);
                 itemsInfoCopy = itemsInfoCopy.Except(sameMainIDItems).ToList();
-                if (Common.Mix2Plate)
-                {
-                    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
-                }
-                else
+                //if (Common.Mix2Plate)
+                //{
+                //    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
+                //}
+                //else
                 {
                     List<StartEnd> ranges = ParseRanges(first.sExtraDescription, realStartSubIDOfThisBatch);
                     List<ItemInfo> allRangeItems = new List<ItemInfo>();
@@ -761,7 +783,7 @@ namespace genscript
                 itemInfo.plateName, 
                 itemInfo.srcWellID,
                 dstLabware, dstWellID, vol);
-            pipettingInfo.orgDstWellID = Common.GetWellID(itemInfo.sExtraDescription);
+            //pipettingInfo.orgDstWellID = Common.GetWellID(itemInfo.sExtraDescription);
             pipettingInfos.Add(pipettingInfo);
 
             Debug.WriteLine(string.Format("plateName:{0},srcWell{1},dstLabware {2},dstWellID {3}", itemInfo.plateName, itemInfo.srcWellID, dstLabware,dstWellID));

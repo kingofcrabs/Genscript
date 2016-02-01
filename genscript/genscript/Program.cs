@@ -119,11 +119,12 @@ namespace genscript
                         OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
                         itemsInfo.AddRange(optSheet.Items);
                     }
-                    var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
-                              ref optGwlFormatStrs);
-                    queueInfos.RemoveAll(x => Common.IsInvalidWellID(x.startDstMixWell));
-                    queueInfos = queueInfos.OrderBy(x => Common.GetWellID( x.startDstMixWell)*1000  + x.startSubID).ToList();
+                    //var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+                    //          ref optGwlFormatStrs);
+                    //queueInfos.RemoveAll(x => Common.IsInvalidWellID(x.startDstMixWell));
+                    //queueInfos = queueInfos.OrderBy(x => Common.GetWellID( x.startDstMixWell)*1000  + x.startSubID).ToList();
                 }
+                //File.WriteAllText(outputFolder + "totalDst.txt", worklist.GetDestLabwares(allPipettingInfos).Count.ToString());
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
                 {
                     int startFileIndex = batchIndex * filesPerBatch;
@@ -165,21 +166,23 @@ namespace genscript
                     {
                         var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
                         worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, true);
-                        worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, false);
-                        var eachPlatePipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos);
+                        //worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, false);
+                        var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos,true);
+                        var eachPlatePipettingStrs = worklist.OptimizeThenFormat(thisBatchPipettingInfos, false);
                         var destLabwares = worklist.GetDestLabwares(thisBatchPipettingInfos);
                         File.WriteAllLines(sDstLabwaresFile, destLabwares);
                         File.WriteAllLines(sBatchSrcPlatesFile, batchPlateNames);
-                        for (int i = 0; i < eachPlatePipettingStrs.Count;i++ )
+                        string sOutputBatchFolder = outputFolder + string.Format("batch{0}\\", batchIndex + 1);
+                        if (!Directory.Exists(sOutputBatchFolder))
                         {
-                            string sOutputBatchFolder = outputFolder + string.Format("batch{0}\\", batchIndex + 1);
-                            if (!Directory.Exists(sOutputBatchFolder))
-                            {
-                                Directory.CreateDirectory(sOutputBatchFolder);
-                            }
-                            File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.csv",i+1), eachPlatePipettingStrs[i]);
+                            Directory.CreateDirectory(sOutputBatchFolder);
                         }
-                        File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingStrs.Count);
+                        for (int i = 0; i < eachPlatePipettingGWLStrs.Count;i++ )
+                        {
+                            File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.gwl",i+1), eachPlatePipettingGWLStrs[i]);
+                            File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
+                        }
+                        File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
                             
                     }
                 }
