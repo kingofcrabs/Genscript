@@ -22,7 +22,7 @@ namespace genscript
             ref List<string> multiDispenseOptGWL)
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
-            pipettingInfos = pipettingInfos.OrderBy( x => x.dstLabware + x.sPrimerID).ToList();
+            pipettingInfos = pipettingInfos.OrderBy( x => x.srcLabware + x.sPrimerID).ToList();
 #if DEBUG
 
 #else

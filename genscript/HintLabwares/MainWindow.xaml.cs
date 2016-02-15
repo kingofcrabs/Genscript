@@ -31,10 +31,12 @@ namespace HintLabwares
         {
             var plates = File.ReadAllLines(GlobalVars.outputFolder + string.Format("src_{0}.txt", GlobalVars.batchID));
             var dstLabwares = File.ReadAllLines(GlobalVars.outputFolder + string.Format("dst_{0}.txt", GlobalVars.batchID));
+            var totalCnt = File.ReadAllText(GlobalVars.outputFolder + "totalDst.txt");
             lstSrcPlates.ItemsSource = plates;
             lstDest.ItemsSource = dstLabwares;
             lblSrcPlateNames.Content += " " + plates.Count().ToString();
             lblDest.Content += " " + dstLabwares.Count().ToString();
+            lblTotalCnt.Content = string.Format("Total Dest Count: {0}", totalCnt);
         }
 
         void MainWindow_Closed(object sender, EventArgs e)

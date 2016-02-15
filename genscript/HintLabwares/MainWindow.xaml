@@ -8,5 +8,6 @@
         <ListBox Height="219" HorizontalAlignment="Left" Margin="249,48,0,0" Name="lstDest" VerticalAlignment="Top" Width="203" ItemsSource="{Binding}" />
         <Label Content="Dest 16Pos Tube Carriers:" Height="28" HorizontalAlignment="Left" Margin="249,12,0,0" Name="lblDest" VerticalAlignment="Top" Width="203" />
         <Button Content="Close" Height="46" HorizontalAlignment="Left" Margin="249,273,0,0" Name="btnClose" VerticalAlignment="Top" Width="203" Click="btnClose_Click" />
+        <Label Content="" Height="28" HorizontalAlignment="Left" Margin="25,283,0,0" Name="lblTotalCnt" VerticalAlignment="Top" />
     </Grid>
 </Window>
