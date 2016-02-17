@@ -22,7 +22,7 @@ namespace genscript
             ref List<string> multiDispenseOptGWL)
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
-            pipettingInfos = pipettingInfos.OrderBy( x => x.srcLabware + x.sPrimerID).ToList();
+            pipettingInfos = pipettingInfos.OrderBy( x => x.srcLabware +  Common.FormatWellID(x.srcWellID) ).ToList();
 #if DEBUG
 
 #else
@@ -160,28 +160,72 @@ namespace genscript
             return clonedInfos;
         }
 
-        public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos,bool mixto96 = false)
+        public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos, bool mixto96 = false)
         {
-            
+
             List<List<string>> well_PrimerIDsList = new List<List<string>>();
             var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
+            List<List<string>> all16PrimerIDs = new List<List<string>>();
+            List<string> all16Labwares = new List<string>();
+
             List<List<string>> all96PrimerIDs = new List<List<string>>();
             List<string> all96Labwares = new List<string>();
-            foreach(var labware in labwares)
+            foreach (var labware in labwares)
             {
                 var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware);
                 var groupedPipettingInfo = thisLabwarePipettingInfos.GroupBy(info => info.dstWellID).ToList();
-                List<IGrouping<int,PipettingInfo>> sortedPipettingInfo = groupedPipettingInfo.OrderBy(x => x.First().dstWellID).ToList();
+                List<IGrouping<int, PipettingInfo>> sortedPipettingInfo = groupedPipettingInfo.OrderBy(x => x.First().dstWellID).ToList();
                 List<string> primerIDs = new List<string>();
                 foreach (var sameGroupPipettingInfo in sortedPipettingInfo)
                 {
                     primerIDs.Add(GetPrimerID(sameGroupPipettingInfo));
                 }
-                all96Labwares.Add(labware);
-                all96PrimerIDs.Add(primerIDs);
+
+                if (mix2plateKeywords.Contains(labware))     //96
+                {
+                    all96Labwares.Add(labware);
+                    all96PrimerIDs.Add(primerIDs);
+                }
+                else //16 or 24
+                {
+                    if (GlobalVars.LabwareWellCnt == 16)
+                    {
+                        all16Labwares.Add(labware);
+                        all16PrimerIDs.Add(primerIDs);
+                    }
+                    else
+                    {
+                        well_PrimerIDsList.Add(Format24WellPlate(labware, primerIDs));
+                    }
+                }
             }
-            return  Format96Pos(all96Labwares, all96PrimerIDs);
+            if (all16Labwares.Count > 0)
+                well_PrimerIDsList.Add(Format16Pos(all16Labwares, all16PrimerIDs));
+            return mixto96 ? Format96Pos(all96Labwares, all96PrimerIDs) : well_PrimerIDsList;
         }
+
+        //public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos,bool mixto96 = false)
+        //{
+            
+        //    List<List<string>> well_PrimerIDsList = new List<List<string>>();
+        //    var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
+        //    List<List<string>> all96PrimerIDs = new List<List<string>>();
+        //    List<string> all96Labwares = new List<string>();
+        //    foreach(var labware in labwares)
+        //    {
+        //        var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware);
+        //        var groupedPipettingInfo = thisLabwarePipettingInfos.GroupBy(info => info.dstWellID).ToList();
+        //        List<IGrouping<int,PipettingInfo>> sortedPipettingInfo = groupedPipettingInfo.OrderBy(x => x.First().dstWellID).ToList();
+        //        List<string> primerIDs = new List<string>();
+        //        foreach (var sameGroupPipettingInfo in sortedPipettingInfo)
+        //        {
+        //            primerIDs.Add(GetPrimerID(sameGroupPipettingInfo));
+        //        }
+        //        all96Labwares.Add(labware);
+        //        all96PrimerIDs.Add(primerIDs);
+        //    }
+        //    return  Format96Pos(all96Labwares, all96PrimerIDs);
+        //}
 
         private List<List<string>> Format96Pos(List<string> all96Labwares, List<List<string>> all96PrimerIDs)
         {
@@ -253,14 +297,14 @@ namespace genscript
 
         private string GetPrimerID(IGrouping<int,PipettingInfo> sameGroupPipettingInfo)
         {
-            
+            var notNull = sameGroupPipettingInfo.Select(x => x != null);
             if (sameGroupPipettingInfo.Count() == 1)
                 return sameGroupPipettingInfo.FirstOrDefault().sPrimerID;
             var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => GetSubID(x.sPrimerID)).ToList();
             string first = pipettingsInfo.First().sPrimerID;
             string last = pipettingsInfo.Last().sPrimerID;
-            int underlinePos = first.IndexOf("_");
-            string suffixLast = last.Substring(underlinePos + 1);
+            int underlinePos = last.IndexOf("_");
+            string suffixLast = last.Substring(underlinePos+1);
             return first + "-" + suffixLast;
 
         }
@@ -548,30 +592,12 @@ namespace genscript
                 List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  && x.sExtraDescription == first.sExtraDescription).ToList();
                 sameMainIDItems = CheckSequential(first,sameMainIDItems);
                 itemsInfoCopy = itemsInfoCopy.Except(sameMainIDItems).ToList();
-                //if (Common.Mix2Plate)
-                //{
-                //    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
-                //}
-                //else
+                if (Common.Mix2Plate)
                 {
-                    List<StartEnd> ranges = ParseRanges(first.sExtraDescription, realStartSubIDOfThisBatch);
-                    List<ItemInfo> allRangeItems = new List<ItemInfo>();
-                    foreach (StartEnd range in ranges)
-                    {
-                        List<ItemInfo> sameRangeItems = sameMainIDItems.Where(x => InRange(x, range)).ToList();
-                        if (sameRangeItems.Count > 0)
-                            AddPipettingInfo4ThisRange(pipettingInfos, sameRangeItems, range);
-                        allRangeItems.AddRange(sameRangeItems);
-                    }
-                    allRangeItems = allRangeItems.Distinct().ToList();
-                    sameMainIDItems = sameMainIDItems.Except(allRangeItems).ToList();
-                    foreach (var item in sameMainIDItems)
-                    {
-                        AddPipettingInfo(pipettingInfos, item, false);
-                        usedWells++;
-                    }
+                    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
                 }
-                //firstItemOflastBatch = first;
+                
+              
             }
           
             return pipettingInfos;
@@ -656,12 +682,12 @@ namespace genscript
         {
             var first = sameMainIDItems.First();
             AddPipettingInfoFixedPlate(pipettingInfos, first, true, true);
-            AddPipettingInfo(pipettingInfos, first,true,true);
+            //AddPipettingInfo(pipettingInfos, first,true,true);
             usedWells++;
             
             var last = sameMainIDItems.Last();
             AddPipettingInfoFixedPlate(pipettingInfos, last, true, false);
-            AddPipettingInfo(pipettingInfos, last,true,true);
+            //AddPipettingInfo(pipettingInfos, last,true,true);
             usedWells++;
             foreach (var item in sameMainIDItems)
             {
@@ -723,11 +749,13 @@ namespace genscript
             {
                 dstLabware = isStart ? "Start" : "End";
             }
-
+            int dstWellID = 0;
+            string noUseLabware = "";
+            CalculateDestPos(usedWells, ref noUseLabware, ref dstWellID);
             PipettingInfo pipettingInfo = new PipettingInfo(itemInfo.sID,
                            itemInfo.plateName,
                            itemInfo.srcWellID,
-                           dstLabware, Common.GetWellID(itemInfo.sExtraDescription), vol);
+                           dstLabware, dstWellID, vol);
             pipettingInfos.Add(pipettingInfo);
 
         }

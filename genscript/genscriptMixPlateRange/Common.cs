@@ -49,8 +49,11 @@ namespace genscript
             int rowIndex = wellID - colIndex * 8 - 1;
             return string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
         }
-
-        internal static int GetWellID(string sWell)
+        public static string FormatWellID(int wellID)
+        {
+            return string.Format("{0:D3}", wellID);
+        }
+        public static int GetWellID(string sWell)
         {
             int rowIndex = sWell.First() - 'A';
             int colIndex = int.Parse(sWell.Substring(1))- 1;
@@ -72,5 +75,7 @@ namespace genscript
             }
             return wellID < 0 || wellID > 96;
         }
+
+        
     }
 }
