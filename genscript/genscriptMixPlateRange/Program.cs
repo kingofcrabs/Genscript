@@ -109,7 +109,7 @@ namespace genscript
                 }
                 var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                           ref optGwlFormatStrs);
-                  
+                File.WriteAllText(outputFolder + "totalDst.txt", worklist.GetDestLabwares(allPipettingInfos).Count.ToString()); 
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
                 {
                     int startFileIndex = batchIndex * filesPerBatch;

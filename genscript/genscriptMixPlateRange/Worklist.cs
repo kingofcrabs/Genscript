@@ -135,15 +135,17 @@ namespace genscript
 
         public List<List<string>> GetWellPrimerID(List<PipettingInfo> pipettingInfos,bool mixto96 = false)
         {
-            
+
             List<List<string>> well_PrimerIDsList = new List<List<string>>();
             var labwares = pipettingInfos.GroupBy(x => x.dstLabware).Select(x => x.Key).ToList();
+            List<List<string>> all16PrimerIDs = new List<List<string>>();
+            List<string> all16Labwares = new List<string>();
+
             List<List<string>> all96PrimerIDs = new List<List<string>>();
             List<string> all96Labwares = new List<string>();
-
-            foreach(var labware in labwares)
+            foreach (var labware in labwares)
             {
-                var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware).ToList();
+                var thisLabwarePipettingInfos = pipettingInfos.Where(p => p.dstLabware == labware);
                 var groupedPipettingInfo = thisLabwarePipettingInfos.GroupBy(info => info.dstWellID).ToList();
                 List<IGrouping<int, PipettingInfo>> sortedPipettingInfo = groupedPipettingInfo.OrderBy(x => x.First().dstWellID).ToList();
                 List<string> primerIDs = new List<string>();
@@ -157,9 +159,25 @@ namespace genscript
                     all96Labwares.Add(labware);
                     all96PrimerIDs.Add(primerIDs);
                 }
-
+                else //16 or 24
+                {
+                    if (GlobalVars.LabwareWellCnt == 16)
+                    {
+                        all16Labwares.Add(labware);
+                        all16PrimerIDs.Add(primerIDs);
+                    }
+                    else
+                    {
+                        well_PrimerIDsList.Add(Format24WellPlate(labware, primerIDs));
+                    }
+                }
             }
-            return  Format96Pos(all96Labwares, all96PrimerIDs);
+            if (all96Labwares.Count > 0)
+                well_PrimerIDsList.AddRange(Format96Pos(all96Labwares, all96PrimerIDs));
+            if (all16Labwares.Count > 0)
+                well_PrimerIDsList.Add(Format16Pos(all16Labwares, all16PrimerIDs));
+           
+            return  well_PrimerIDsList;
         }
 
         private List<List<string>> Format96Pos(List<string> all96Labwares, List<List<string>> all96PrimerIDs)
@@ -351,7 +369,7 @@ namespace genscript
                     List<PipettingInfo> thisPlateOptPipettingInfos = new List<PipettingInfo>();
                     for (int i = 0; i < 96; i++)
                     {
-                        List<PipettingInfo> expectedItems = sameSrcPlatePipettingInfo.Where(x => x.srcWellID == i + 1).ToList();
+                        List<PipettingInfo> expectedItems = sameSrcPlatePipettingInfo.Where(x => x.srcWellID == i + 1 && x.dstLabware== "Mix" ).ToList();
                         if (expectedItems.Count == 0)
                             continue;
                         var theOne = expectedItems.OrderBy(x => GetOrderString(x)).First();
@@ -555,14 +573,14 @@ namespace genscript
             }
 
             foreach (var item in sameRangeItems)
-                Add2PlateMix(pipettingInfos, sameRangeItems.First());
+                Add2PlateMix(pipettingInfos, item);
 
             if (sameRangeItems.Count > 1) //单个的，只加到EP管一次
             {
                 if (IsOnBoundary(sameRangeItems.Last(), range))
                 {
                     Add2EPTube(pipettingInfos, sameRangeItems.Last());
-                    Add2PlateEnd(pipettingInfos, sameRangeItems.First());
+                    Add2PlateEnd(pipettingInfos, sameRangeItems.Last());
                 }
             }
             usedPlateWells++;
