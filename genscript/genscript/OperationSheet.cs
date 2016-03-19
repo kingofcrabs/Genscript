@@ -107,7 +107,7 @@ namespace genscript
         {
             List<string> strs = src.Split('_').ToList();
             itemInfo.plateName = sPlateName;
-            itemInfo.mainID = int.Parse(strs[0]);
+            itemInfo.mainID = strs[0];
             itemInfo.subID = int.Parse(strs[1]);
         }
 
@@ -154,7 +154,7 @@ namespace genscript
     {
         public string sID;
         public int subID;
-        public int mainID;
+        public string mainID;
         public string plateName;
         public int srcWellID;
         public string sExtraDescription;
