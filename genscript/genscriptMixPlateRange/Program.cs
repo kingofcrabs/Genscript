@@ -149,7 +149,15 @@ namespace genscript
                     }
                     File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
                 }
-                
+                //add start end to tubes
+                var startEndPipettings = worklist.AddStartEnd2EPTube(allPipettingInfos);
+                var startPipettings = startEndPipettings.Where(x=>x.srcLabware == "Start").ToList();
+                var startPipettingStrs = worklist.Format(startPipettings, false);
+                var endPipettings = startEndPipettings.Where(x => x.srcLabware == "End").ToList();
+                var endPipettingStrs = worklist.Format(endPipettings, false);
+                File.WriteAllLines(outputFolder + "start.csv", startPipettingStrs);
+                File.WriteAllLines(outputFolder + "end.csv", endPipettingStrs);
+
                 List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
                 primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos, Common.Mix2Plate);
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);

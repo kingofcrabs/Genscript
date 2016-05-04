@@ -81,8 +81,6 @@ namespace genscript
            
         }
 
-     
-
         public List<List<string>> OptimizeThenFormat(List<PipettingInfo> pipettingInfos,bool generateGWL)
         {
             List<List<PipettingInfo>> optimizedPipettingInfos = OptimizeCommands(pipettingInfos);
@@ -389,7 +387,7 @@ namespace genscript
                 throw new Exception("you must be kidding me, I am only for mix2Plate");
         }
 
-        private List<string> Format(List<PipettingInfo> pipettingInfos,bool bReadable = false)
+        public List<string> Format(List<PipettingInfo> pipettingInfos,bool bReadable = false)
         {
             List<string> strs = new List<string>();
             foreach (var pipettingInfo in pipettingInfos)
@@ -555,11 +553,57 @@ namespace genscript
                 allRangeItems = allRangeItems.Distinct().ToList();
                 sameMainIDItems = sameMainIDItems.Except(allRangeItems).ToList();
                 //添加不在range中的离散样品到EP管
-                sameMainIDItems.ForEach(x => Add2EPTube(pipettingInfos, x));
+                if(sameMainIDItems.Count > 0)
+                {
+                    var firstItem = sameMainIDItems.First();
+#if DEBUG
+#else
+                    throw new Exception(string.Format("there are samples not in any range! \r\n"
+                    +"First sample plateName:{0}, id:{1} ",
+                        firstItem.plateName,firstItem.sID));
+#endif
+                }
+                    
+                //sameMainIDItems.ForEach(x => Add2EPTube(pipettingInfos, x));
             }
             return pipettingInfos;
         }
 
+        PipettingInfo GetStartEndPipetting(PipettingInfo item, string dstLabware, int dstWellID, int vol)
+        {
+            return new PipettingInfo(item.sPrimerID,
+                 item.dstLabware,
+                 item.dstWellID,
+                 dstLabware, dstWellID, vol);
+        }
+
+        public List<PipettingInfo> AddStartEnd2EPTube(List<PipettingInfo> pipettingInfos)
+        {
+            List<PipettingInfo> startEndPipettings = new List<PipettingInfo>();
+            var startPlatePipetting = pipettingInfos.Where(x => x.dstLabware == "Start").OrderBy(x=>x.dstWellID).ToList();
+            var endPlatePipetting = pipettingInfos.Where(x => x.dstLabware == "End").OrderBy(x => x.dstWellID).ToList();
+            if (startPlatePipetting.Count != endPlatePipetting.Count)
+                throw new Exception(string.Format("Start Plate total count:{0} != End Plate total count:{1}",
+                    startPlatePipetting.Count, endPlatePipetting.Count));
+            int vol  = int.Parse(ConfigurationManager.AppSettings["EPVolume"]);
+            string dstLabware = "";
+            int dstWellID = 0;
+            for(int i = 0; i< startPlatePipetting.Count; i++)
+            {
+                CalculateEPPos(ref dstLabware, ref dstWellID);
+                usedEPTubes++;
+                var startItem = startPlatePipetting[i];
+                startEndPipettings.Add(GetStartEndPipetting(startItem, dstLabware, dstWellID, vol));
+                CalculateEPPos(ref dstLabware, ref dstWellID);
+                usedEPTubes++;
+                var endItem = endPlatePipetting[i];
+                startEndPipettings.Add(GetStartEndPipetting(endItem, dstLabware, dstWellID, vol));
+            }
+            pipettingInfos.AddRange(startEndPipettings);
+            return startEndPipettings;
+        }
+
+      
 
 
         private void AddPipettingInfo4ThisRange(List<PipettingInfo> pipettingInfos,
@@ -605,6 +649,7 @@ namespace genscript
             {
                 bool isFixVol = ConfigurationManager.AppSettings.AllKeys.Contains("BoundaryFixedVolume");
                 vol = isFixVol ? int.Parse(ConfigurationManager.AppSettings["BoundaryFixedVolume"]) : itemInfo.vol * 10;
+                vol += int.Parse(ConfigurationManager.AppSettings["EPVolume"]);
             }
             PipettingInfo pipettingInfo = new PipettingInfo(itemInfo.sID,
                itemInfo.plateName,
@@ -615,8 +660,10 @@ namespace genscript
             Debug.WriteLine(string.Format("plateName:{0},srcWell{1},dstLabware {2},dstWellID {3}", itemInfo.plateName, itemInfo.srcWellID, plateName, usedPlateWells));
         }
      
+        //no more use
         private void Add2EPTube(List<PipettingInfo> pipettingInfos, ItemInfo itemInfo)
         {
+            return;
             string dstLabware = "";
             int dstWellID = 0;
             int vol = itemInfo.vol * 10;
@@ -804,6 +851,8 @@ namespace genscript
             notMix2PlateItems.ForEach(x => itemNames.Add(x.dstLabware));
             return new List<string>(itemNames);
         }
+
+       
     }
 
     struct StartEnd
