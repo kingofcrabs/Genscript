@@ -61,7 +61,7 @@ namespace genscript {
         }
         
         /// <summary>
-        ///   查找类似 0.63 的本地化字符串。
+        ///   查找类似 0.64 的本地化字符串。
         /// </summary>
         internal static string version {
             get {

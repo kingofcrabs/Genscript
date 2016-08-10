@@ -93,7 +93,7 @@ namespace genscript
             return eachPlatePipettingInfos;
         }
 
-        private List<string> GenerateGWL(List<PipettingInfo> pipettingInfos)
+        public List<string> GenerateGWL(List<PipettingInfo> pipettingInfos)
         {
             List<string> strs = new List<string>();
             pipettingInfos.ForEach(x=>strs.AddRange(GenerateGWL(x)));
@@ -789,9 +789,9 @@ namespace genscript
             int pos = sExtraDesc.IndexOf("**");
             int lastPos = sExtraDesc.LastIndexOf("**");
             if (lastPos != sExtraDesc.Length - 2)
-                throw new Exception("Invalid remarks! Last two chars is NOT '*'");
+                throw new Exception("Invalid remarks! Last two chars is NOT '**'");
             if (pos == -1)
-                throw new Exception("Invalid remarks! first two chars is NOT '*'");
+                throw new Exception("Invalid remarks! first two chars is NOT '**'");
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!");
             sExtraDesc = sExtraDesc.Substring(pos + 2);
