@@ -47,7 +47,14 @@ namespace genscript
             }
             itemsInfo = new List<ItemInfo>();
             firstHalfStrLists.AddRange(secondHalfStrLists);
-            itemsInfo.AddRange(GetItemsInfo(firstHalfStrLists));
+            try
+            {
+                itemsInfo.AddRange(GetItemsInfo(firstHalfStrLists));
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("Invalid file: " + sCSVFile + ex.Message);
+            }
         }
 
       
@@ -82,9 +89,27 @@ namespace genscript
                     sExtraDescription = strs[extraDescriptionColumn];
                 if (strs[0] == "")
                     continue;
+                CheckExtraDescription(sExtraDescription);
                 itemsInfo.Add(GetItemInfo(strs, sExtraDescription));
             }
+            
             return itemsInfo;
+        }
+
+
+        private void CheckExtraDescription(string s)
+        {
+            string sExtraDesc = s;
+            string moreInfo = "The description is: " + s;
+            int pos = sExtraDesc.IndexOf("**");
+            int lastPos = sExtraDesc.LastIndexOf("**");
+            if (lastPos != sExtraDesc.Length - 2)
+                throw new Exception("Invalid remarks! Last two chars is NOT '**'" + moreInfo);
+            if (pos == -1)
+                throw new Exception("Invalid remarks! first two chars is NOT '**'" + moreInfo);
+            if (lastPos == pos)
+                throw new Exception("Invalid remarks! Only one ** found!" + moreInfo);
+            
         }
 
         private string GetMainIndex(string sCurrentIndex)
@@ -193,5 +218,8 @@ namespace genscript
             vol = pipettingInfo.vol;
             orgDstWellID = pipettingInfo.orgDstWellID;
         }
+
+       
+       
     }
 }

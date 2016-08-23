@@ -107,6 +107,7 @@ namespace genscript
                     OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
                     itemsInfo.AddRange(optSheet.Items);
                 }
+
                 var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                           ref optGwlFormatStrs);
                 File.WriteAllText(outputFolder + "totalDst.txt", worklist.GetDestLabwares(allPipettingInfos).Count.ToString()); 
