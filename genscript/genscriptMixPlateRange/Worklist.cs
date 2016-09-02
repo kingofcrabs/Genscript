@@ -558,7 +558,7 @@ namespace genscript
                     var firstItem = sameMainIDItems.First();
 #if DEBUG
 #else
-                    throw new Exception(string.Format("there are samples not in any range! \r\n"
+                   Console.WriteLine(string.Format("Warning!!! There are samples not in any range! \r\n"
                     +"First sample plateName:{0}, id:{1} ",
                         firstItem.plateName,firstItem.sID));
 #endif

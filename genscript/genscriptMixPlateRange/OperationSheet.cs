@@ -53,7 +53,7 @@ namespace genscript
             }
             catch(Exception ex)
             {
-                throw new Exception("Invalid file: " + sCSVFile + ex.Message);
+                throw new Exception("Invalid file: " + sCSVFile + " Error message is: " + ex.Message);
             }
         }
 
@@ -99,6 +99,8 @@ namespace genscript
 
         private void CheckExtraDescription(string s)
         {
+            if (s == empty)
+                return;
             string sExtraDesc = s;
             string moreInfo = "The description is: " + s;
             int pos = sExtraDesc.IndexOf("**");
