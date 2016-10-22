@@ -37,7 +37,7 @@ namespace genscript
             string sHeader = "srcLabel,srcWell,dstLabel,dstWell,volume";
             string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
             List<string> files = Directory.EnumerateFiles(GlobalVars.WorkingFolder, "*csv").ToList();
-            List<string> optFiles = files.Where(x => x.Contains("_192")).ToList();
+            List<string> optFiles = files.Where(x => x.Contains("_768")).ToList();
             List<string> odFiles = files.Where(x => x.Contains("_OD")).ToList();
             optFiles = optFiles.OrderBy(x => GetSubString(x)).ToList();
             odFiles = odFiles.OrderBy(x => GetSubString(x)).ToList();
@@ -93,86 +93,55 @@ namespace genscript
                 readablecsvFormatStrs.Add(sReadableHeader);
              
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
-                int filesPerBatch = Common.PlateCnt;
-                int batchCnt = (optCSVFiles.Count + filesPerBatch - 1) / filesPerBatch;
-                File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
                 List<ItemInfo> itemsInfo = new List<ItemInfo>();
-                List<OperationSheetQueueInfo> queueInfos = new List<OperationSheetQueueInfo>();
-            
                 for (int i = 0; i < optCSVFiles.Count; i++)
                 {
                     OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
-                    OperationSheetQueueInfo queueInfo = new OperationSheetQueueInfo(optSheet, optCSVFiles[i]);
-                    queueInfos.Add(queueInfo);
-                    OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
                     itemsInfo.AddRange(optSheet.Items);
+
+                    OdSheet odSheet = new OdSheet();
+                    odSheet.ReadInfo(odCSVFiles[i], i);
                 }
 
                 var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                           ref optGwlFormatStrs);
-                File.WriteAllText(outputFolder + "totalDst.txt", worklist.GetDestLabwares(allPipettingInfos).Count.ToString()); 
-                for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
+                
+
+                List<string> batchPlateNames = new List<string>();
+                worklist.AdjustLabwareLabels(allPipettingInfos, batchPlateNames, true);
+                
+                Dictionary<string, List<PipettingInfo>> pipettingInfoList = new Dictionary<string, List<PipettingInfo>>();
+                if (GlobalVars.pipettingMixFirst)
                 {
-                    int startFileIndex = batchIndex * filesPerBatch;
-                    string sOutputFile = outputFolder + string.Format("{0}.csv", batchIndex + 1);
-                    string sBatchSrcPlatesFile = outputFolder + string.Format("src_{0}.txt", batchIndex + 1);
-                    string sBatchSrcPlatesCntFile = outputFolder + string.Format("src_{0}Cnt.txt", batchIndex + 1);
-                    string sDstLabwaresFile = outputFolder + string.Format("dst_{0}.txt", batchIndex + 1);
-                    string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex + 1);
-                    List<string> batchPlateNames = new List<string>();
-                    List<OperationSheetQueueInfo> batchPlateInfos = new List<OperationSheetQueueInfo>();
-                    for (int i = 0; i < filesPerBatch; i++)
-                    {
-                        int curFileIndex = startFileIndex + i;
-                        if (curFileIndex >= queueInfos.Count)
-                            break;
-                        var filePath = queueInfos[curFileIndex].filePath;
-                        batchPlateNames.Add(GetSrcPlateName(filePath));
-                        batchPlateInfos.Add(queueInfos[curFileIndex]);
-                    }
-                    
-                    var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
-                    worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, true);
-
-                    var destLabwares = worklist.GetDestLabwares(thisBatchPipettingInfos);
-                    File.WriteAllLines(sDstLabwaresFile, destLabwares);
-                    File.WriteAllLines(sBatchSrcPlatesFile, batchPlateNames);
-
-                    Dictionary<string, List<PipettingInfo>> pipettingInfoList = new Dictionary<string, List<PipettingInfo>>();
-                    if(GlobalVars.pipettingMixFirst)
-                    {
-                        var mixPipettingInfos = thisBatchPipettingInfos.Where(x => x.dstLabware == "Mix").ToList();
-                        var otherPipettingInfos = thisBatchPipettingInfos.Except(mixPipettingInfos).ToList();
-                        pipettingInfoList.Add("Mix",mixPipettingInfos);
-                        pipettingInfoList.Add("StartEnd",otherPipettingInfos);
-                    }
-                    else
-                    {
-                        pipettingInfoList.Add("All",thisBatchPipettingInfos);
-                    }
-
-                    foreach(var pair in pipettingInfoList)
-                    {
-                        var tmpPipettingInfo = pair.Value;
-                        var prefix = pair.Key;
-                        var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
-                        var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
-                        string sOutputBatchFolder = outputFolder + string.Format("batch{0}\\{1}\\", batchIndex + 1,prefix);
-                        if (!Directory.Exists(sOutputBatchFolder))
-                        {
-                            Directory.CreateDirectory(sOutputBatchFolder);
-                        }
-                        for (int i = 0; i < eachPlatePipettingGWLStrs.Count; i++)
-                        {
-                            File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
-                            File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
-                        }
-                        File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
-                    }
-
-                    
-                   
+                    var mixPipettingInfos = allPipettingInfos.Where(x => x.dstLabware == "Mix").ToList();
+                    var otherPipettingInfos = allPipettingInfos.Except(mixPipettingInfos).ToList();
+                    pipettingInfoList.Add("Mix", mixPipettingInfos);
+                    pipettingInfoList.Add("StartEnd", otherPipettingInfos);
                 }
+                else
+                {
+                    pipettingInfoList.Add("All", allPipettingInfos);
+                }
+
+                foreach (var pair in pipettingInfoList)
+                {
+                    var tmpPipettingInfo = pair.Value;
+                    var prefix = pair.Key;
+                    var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
+                    var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
+                    string sOutputFolder = outputFolder + string.Format("{0}\\", prefix);
+                    if (!Directory.Exists(sOutputFolder))
+                    {
+                        Directory.CreateDirectory(sOutputFolder);
+                    }
+                    for (int i = 0; i < eachPlatePipettingGWLStrs.Count; i++)
+                    {
+                        File.WriteAllLines(sOutputFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
+                        File.WriteAllLines(sOutputFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
+                    }
+                    File.WriteAllText(sOutputFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
+                }
+                
                 //add start end to tubes
                 var startEndPipettings = worklist.AddStartEnd2EPTube(allPipettingInfos);
                 var startPipettings = startEndPipettings.Where(x=>x.srcLabware == "Start").ToList();

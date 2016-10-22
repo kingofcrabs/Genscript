@@ -10,7 +10,7 @@ namespace genscript
     {
         int startIndex = 8;
         //int endIndex = 55;
-        int cnt = 48;
+        int cnt = 192;
         int extraDescriptionColumn = 7;
         int IDColumn = 0;
         int srcWellColumn = 6;
@@ -53,7 +53,7 @@ namespace genscript
             }
             catch(Exception ex)
             {
-                throw new Exception("Invalid file: " + sCSVFile + " Error message is: " + ex.Message);
+                throw new Exception("Invalid file: " + sCSVFile + ex.Message);
             }
         }
 
@@ -99,8 +99,6 @@ namespace genscript
 
         private void CheckExtraDescription(string s)
         {
-            if (s == empty)
-                return;
             string sExtraDesc = s;
             string moreInfo = "The description is: " + s;
             int pos = sExtraDesc.IndexOf("**");

@@ -275,8 +275,8 @@ namespace genscript
             List<string> strs = new List<string>();
             for (int col = 0; col < 12; col++)
             {
-                int startID = col * 8 + 1;
-                int endID = startID + 7;
+                int startID = col * Common.rows384 + 1;
+                int endID = startID + Common.rows384 - 1;
                 for (int ID = startID; ID <= endID; ID++)
                 {
                     if (!normalVols.Exists(x => x.srcWellID == ID))
@@ -335,19 +335,25 @@ namespace genscript
             for (int times = 0; times < 2; times++)
             {
                 string curPlateName = plateNames[times];
-                for (int col = 0; col < 12; col++)
+                for (int col = 0; col < Common.rows384; col++)
                 {
-                    int startID = col * 8 + 1;
-                    int endID = startID + 7;
-                    for (int ID = startID; ID <= endID; ID++)
+                    int startID = col * Common.rows384 + 1;
+                    int endID = startID + Common.rows384 - 1;
+                    for (int oddEven = 0; oddEven < 2; oddEven++ )
+                        // first we pipet 1,3,5,7,9,11,13,15
+                        //then we pipet  2,4,6,8,10,12,14,16
                     {
-                        if (!tmpPipettingInfos.Exists(x => x.srcWellID == ID && x.srcLabware == curPlateName))
-                            continue;
-                        var pipettingInfo = tmpPipettingInfos.First(x => x.srcWellID == ID && x.srcLabware == curPlateName);
+                        for (int ID = startID+oddEven; ID <= endID; ID+=2)
+                        {
+                            if (!tmpPipettingInfos.Exists(x => x.srcWellID == ID && x.srcLabware == curPlateName))
+                                continue;
+                            var pipettingInfo = tmpPipettingInfos.First(x => x.srcWellID == ID && x.srcLabware == curPlateName);
 
-                        allOptimizedPipettingInfos.Add(pipettingInfo);
-                        tmpPipettingInfos = tmpPipettingInfos.Except(new List<PipettingInfo>() { pipettingInfo }).ToList();
+                            allOptimizedPipettingInfos.Add(pipettingInfo);
+                            tmpPipettingInfos = tmpPipettingInfos.Except(new List<PipettingInfo>() { pipettingInfo }).ToList();
+                        }
                     }
+                        
                 }
             }
             allOptimizedPipettingInfos.AddRange(tmpPipettingInfos.OrderBy(x => x.srcLabware + x.srcWellID.ToString()));
@@ -399,7 +405,7 @@ namespace genscript
 
         private string Format(PipettingInfo pipettingInfo, bool bReadable)
         {
-            string srcWellID = bReadable ? GetWellStr(pipettingInfo.srcWellID) : pipettingInfo.srcWellID.ToString();
+            string srcWellID = bReadable ? GetWellStr384(pipettingInfo.srcWellID) : pipettingInfo.srcWellID.ToString();
             string sDstWellID = pipettingInfo.dstWellID.ToString();
 
             if(mix2plateKeywords.Contains(pipettingInfo.dstLabware)) //mix 2 96 plate
@@ -427,7 +433,7 @@ namespace genscript
             else
                 return string.Format("{0},{1},{2},{3},{4},{5}",
                     pipettingInfo.srcLabware,
-                    Common.GetWellDesc(pipettingInfo.srcWellID),
+                    Common.GetWellDesc384(pipettingInfo.srcWellID),
                     pipettingInfo.dstLabware,
                     sDstWellID, pipettingInfo.vol,pipettingInfo.sPrimerID);
         }
@@ -481,15 +487,26 @@ namespace genscript
             return sWell;
         }
 
+        private string GetWellStr384(int wellID)
+        {
+            int rowIndex = wellID - 1;
+            while (rowIndex >= Common.rows384)
+                rowIndex -= Common.rows384;
+            int colIndex = (wellID - 1) / Common.rows384;
+            char rowID = (char)('A' + rowIndex);
+            string sWell = string.Format("{0}{1:D2}", rowID, colIndex + 1);
+            return sWell;
+        }
+
         private List<string> GenerateWorklistSameBatch(List<PipettingInfo> batchPipettingInfos)
         {
             List<string> strs = new List<string>();
             var pipettingInfo = batchPipettingInfos.First();
 
             int rowIndex = pipettingInfo.srcWellID - 1;
-            while (rowIndex >= 8)
-                rowIndex -= 8;
-            int colIndex = (pipettingInfo.srcWellID - 1) / 8;
+            while (rowIndex >= Common.rows384)
+                rowIndex -= Common.rows384;
+            int colIndex = (pipettingInfo.srcWellID - 1) / Common.rows384;
             char rowID = (char)('A' + rowIndex);
             string comment = string.Format("C;{0}{1:D2}", rowID, colIndex + 1);
             //if( !processedSrcWells.Contains(pipettingInfo.srcWellID))
@@ -558,7 +575,7 @@ namespace genscript
                     var firstItem = sameMainIDItems.First();
 #if DEBUG
 #else
-                   Console.WriteLine(string.Format("Warning!!! There are samples not in any range! \r\n"
+                    throw new Exception(string.Format("there are samples not in any range! \r\n"
                     +"First sample plateName:{0}, id:{1} ",
                         firstItem.plateName,firstItem.sID));
 #endif
@@ -817,13 +834,6 @@ namespace genscript
             return sDispense;
         }
      
-        private static int ConvertWellID(int wellID)
-        {
-            int colIndex = (wellID - 1) / 4;
-            int rowIndex = wellID - colIndex * 4 - 1;
-            return rowIndex * 6 + colIndex + 1;
-        }
-
         private List<StartEnd> ParseMeaningfulRanges(string sExtraDesc, int firstSubID)
         {
             string[] strs = sExtraDesc.Split('*');
@@ -846,9 +856,9 @@ namespace genscript
 
         internal List<string> GetDestLabwares(List<PipettingInfo> allPipettingInfos)
         {
-            var notMix2PlateItems = allPipettingInfos.Where(x => !mix2plateKeywords.Contains((x.dstLabware))).ToList();
+            //var notMix2PlateItems = allPipettingInfos.Where(x => !mix2plateKeywords.Contains((x.dstLabware))).ToList();
             HashSet<string> itemNames = new HashSet<string>();
-            notMix2PlateItems.ForEach(x => itemNames.Add(x.dstLabware));
+            allPipettingInfos.ForEach(x => itemNames.Add(x.dstLabware));
             return new List<string>(itemNames);
         }
 
