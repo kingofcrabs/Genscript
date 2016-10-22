@@ -1,0 +1,1 @@
+source plate is 384 well plate.
