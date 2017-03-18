@@ -15,14 +15,12 @@ namespace genscript
         HashSet<int> processedSrcWells = new HashSet<int>();
         List<string> mix2plateKeywords = new List<string>() { "Start", "End", "Mix" };
 
-
-
         public List<string> GenerateWorklist(List<ItemInfo> itemsInfo,
             List<string> readableOutput, ref List<PipettingInfo> allPipettingInfos,
             ref List<string> multiDispenseOptGWL)
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
-            pipettingInfos = pipettingInfos.OrderBy(x => GetOrderString(x)).ToList();
+            //pipettingInfos = pipettingInfos.OrderBy(x => GetOrderString(x)).ToList();
             //pipettingInfos = SortByDstWell(pipettingInfos);
 #if DEBUG
 
@@ -39,10 +37,7 @@ namespace genscript
             //}
 
             #region generate opt multi dispense gwl
-            List<PipettingInfo> bigVols =new List<PipettingInfo>();
-            List<PipettingInfo> normalVols =new List<PipettingInfo>();
-            SplitByVolume(pipettingInfos,bigVols,ref normalVols);
-            multiDispenseOptGWL = GenerateWorklist(bigVols, normalVols);
+            multiDispenseOptGWL = GenerateWorklistOptimizely(pipettingInfos);
             #endregion
             //pipettingInfos = pipettingInfos.OrderBy(x => x.srcLabware + x.sPrimerID).ToList();
             List<PipettingInfo> optimizedPipettingInfos = OptimizeCommandsSinglePlate(pipettingInfos);
@@ -296,26 +291,35 @@ namespace genscript
         }
 
 
-        private List<string> GenerateWorklist(List<PipettingInfo> bigVols, List<PipettingInfo> normalVols)
+        private List<string> GenerateWorklistOptimizely(List<PipettingInfo> normalVols)
         {
             List<string> strs = new List<string>();
-            for (int col = 0; col < 12; col++)
+            var srcLabware = normalVols.First().srcLabware;
+            List<List<PipettingInfo>> eachPlatePipettings = new List<List<PipettingInfo>>();
+            var firstPlatePipettings = normalVols.Where(x => x.srcLabware == srcLabware).ToList();
+            var secondPlatePipettings = normalVols.Except(firstPlatePipettings).ToList();
+            eachPlatePipettings.Add(firstPlatePipettings);
+            eachPlatePipettings.Add(secondPlatePipettings);
+
+            foreach(var pipettings in eachPlatePipettings)
             {
-                int startID = col * 8 + 1;
-                int endID = startID + 7;
-                for (int ID = startID; ID <= endID; ID++)
+                var curPlatePipettings = pipettings;
+                for (int col = 0; col < 12; col++)
                 {
-                    if (!normalVols.Exists(x => x.srcWellID == ID))
-                        continue;
-                    List<PipettingInfo> batchPipettingInfos = normalVols.Where(x => x.srcWellID == ID).ToList();
-                    strs.AddRange(GenerateWorklistSameBatch(batchPipettingInfos));
-                    normalVols = normalVols.Except(batchPipettingInfos).ToList();
+                    int startID = col * 8 + 1;
+                    int endID = startID + 7;
+                    for (int ID = startID; ID <= endID; ID++)
+                    {
+                        if (!curPlatePipettings.Exists(x => x.srcWellID == ID))
+                            continue;
+                        List<PipettingInfo> batchPipettingInfos = curPlatePipettings.Where(x => x.srcWellID == ID).ToList();
+                        strs.AddRange(GenerateWorklistSameBatch(batchPipettingInfos));
+                        curPlatePipettings = curPlatePipettings.Except(batchPipettingInfos).ToList();
+                    }
                 }
+                strs.Add("B;");
             }
-            foreach (var pipettingInfo in bigVols)
-            {
-                strs.AddRange(GenerateWorklistSameBatch(new List<PipettingInfo>() { pipettingInfo }));
-            }
+         
             return strs;
         }
 
