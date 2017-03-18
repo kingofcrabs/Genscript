@@ -11,9 +11,10 @@ namespace genscript
         int startIndex = 8;
         //int endIndex = 55;
         int cnt = 48;
-        int extraDescriptionColumn = 7;
+        int extraDescriptionColumn = 7; //index
         int IDColumn = 0;
-        int srcWellColumn = 6;
+        int NameColumn = 6;
+        int srcWellColumn = 4;  //index
         private string sPlateName = "";
         public static string empty = "empty";
         List<ItemInfo> itemsInfo;
@@ -62,31 +63,31 @@ namespace genscript
         private List<ItemInfo> GetItemsInfo(List<List<string>> strLists)
         {
             List<ItemInfo> itemsInfo = new List<ItemInfo>();
-            string sExtraDescription = "";
-            string sCurrentIndex = strLists.First()[0];
-            sCurrentIndex = GetMainIndex(sCurrentIndex);
-            foreach (List<string> strs in strLists)
-            {
-                string tmpCurrentIndex = GetMainIndex(strs[IDColumn]);
-                if (tmpCurrentIndex != sCurrentIndex)
-                {
-                    sCurrentIndex = tmpCurrentIndex;
-                    if( strs[extraDescriptionColumn] == "")
-                        strs[extraDescriptionColumn] = empty;
-                }
-            }
+            Dictionary<string, string> primerName_ExtraDescription = new Dictionary<string, string>();
+
 
             foreach (List<string> strs in strLists)
             {
+                string primerName = GetMainPrimerName(strs[NameColumn]);
                 if (strs[extraDescriptionColumn] != string.Empty)
-                    sExtraDescription = strs[extraDescriptionColumn];
-                if (strs[0] == "")
-                    continue;
-                itemsInfo.Add(GetItemInfo(strs, sExtraDescription));
+                {
+                    if (!primerName_ExtraDescription.ContainsKey(primerName))
+                        primerName_ExtraDescription.Add(primerName, strs[extraDescriptionColumn]);
+                }
+                string extraDesc = primerName_ExtraDescription.ContainsKey(primerName) ? primerName_ExtraDescription[primerName] : empty;
+
+                itemsInfo.Add(GetItemInfo(strs,extraDesc));
+
             }
             return itemsInfo;
         }
 
+        private string GetMainPrimerName(string name)
+        {
+            string[] strs = name.Split('-');
+            return strs[0];
+
+        }
         private string GetMainIndex(string sCurrentIndex)
         {
             string[] strs = sCurrentIndex.Split('_');
@@ -98,17 +99,31 @@ namespace genscript
             ItemInfo itemInfo = new ItemInfo();
             itemInfo.sExtraDescription = sExtraDescription;
             itemInfo.sID = strs[IDColumn];
-            ParseID(itemInfo.sID,ref itemInfo);
+            string name = strs[NameColumn];
+            ParseID( itemInfo.sID,name,ref itemInfo);
             itemInfo.srcWellID = Common.GetWellID(strs[srcWellColumn]);
             return itemInfo;
         }
 
-        private void ParseID(string src,ref ItemInfo itemInfo)
+        private void ParseID(string sPrimerID, string sPrimerName, ref ItemInfo itemInfo)
         {
-            List<string> strs = src.Split('_').ToList();
+            List<string> strs = sPrimerName.Split('_').ToList();
             itemInfo.plateName = sPlateName;
             itemInfo.mainID = strs[0];
-            itemInfo.subID = int.Parse(strs[1]);
+            string sSubID = strs.Last();
+            if(itemInfo.sExtraDescription == empty)
+            {
+                itemInfo.subID = 1;
+            }
+            else
+            {
+                int val = 0;
+                bool bok = int.TryParse(strs.Last(), out val);
+                if (!bok)
+                    throw new Exception(string.Format("Primer :{0}'s name is invalid!", sPrimerID));
+                itemInfo.subID = val;
+            }
+            
         }
 
         private List<List<string>> GetHalfStrLists(List<string> strs,bool firstHalf = true)

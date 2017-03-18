@@ -138,7 +138,7 @@ namespace genscript
                     for (int i = 0; i < filesPerBatch; i++)
                     {
                         int curFileIndex = startFileIndex + i;
-                        if (curFileIndex >= queueInfos.Count)
+                        if (!mix2EPTubes && curFileIndex >= queueInfos.Count)
                             break;
                         var filePath = mix2EPTubes ? optCSVFiles[curFileIndex] : queueInfos[curFileIndex].filePath;
                         batchPlateNames.Add(GetSrcPlateName(filePath));

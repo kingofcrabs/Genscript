@@ -23,7 +23,7 @@ namespace genscript
         {
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
             pipettingInfos = pipettingInfos.OrderBy(x => GetOrderString(x)).ToList();
-            pipettingInfos = SortByDstWell(pipettingInfos);
+            //pipettingInfos = SortByDstWell(pipettingInfos);
 #if DEBUG
 
 #else
@@ -150,8 +150,16 @@ namespace genscript
                 labwareMappedInt = 2;
             else if (x.dstLabware.Contains("End"))
                 labwareMappedInt = 3;
-            string[] strs = x.sPrimerID.Split('_');
-            return int.Parse(strs[1])  + labwareMappedInt;
+            string[] strs = x.sPrimerID.Split('-');
+            string sDigit = "";
+            foreach(var ch in strs[0])
+            {
+                if( char.IsDigit(ch))
+                {
+                    sDigit += ch;
+                }
+            }
+            return int.Parse(sDigit) + labwareMappedInt;
         }
 
         private IEnumerable<PipettingInfo> CloneInfos(List<PipettingInfo> pipettingInfos)
@@ -278,7 +286,7 @@ namespace genscript
             
             if (sameGroupPipettingInfo.Count() == 1)
                 return sameGroupPipettingInfo.FirstOrDefault().sPrimerID;
-            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => GetSubID(x.sPrimerID)).ToList();
+            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => x.sPrimerID).ToList();
             string first = pipettingsInfo.First().sPrimerID;
             string last = pipettingsInfo.Last().sPrimerID;
             int underlinePos = first.IndexOf("_");
@@ -287,13 +295,6 @@ namespace genscript
 
         }
 
-        private int GetSubID(string s)
-        {
-            string[] strs = s.Split('_');
-            return int.Parse(strs[1]);
-        }
-
-    
 
         private List<string> GenerateWorklist(List<PipettingInfo> bigVols, List<PipettingInfo> normalVols)
         {
@@ -567,33 +568,26 @@ namespace genscript
                 int realStartSubIDOfThisBatch = first.subID;
                 
                 //List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID && x.plateName == first.plateName && x.sExtraDescription == first.sExtraDescription).ToList();
-                List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  && x.sExtraDescription == first.sExtraDescription).ToList();
+                List<ItemInfo> sameMainIDItems = itemsInfoCopy.Where(x => x.mainID == first.mainID  &&
+                    x.sExtraDescription == first.sExtraDescription).ToList();
                 sameMainIDItems = CheckSequential(first,sameMainIDItems);
                 itemsInfoCopy = itemsInfoCopy.Except(sameMainIDItems).ToList();
-                //if (Common.Mix2Plate)
-                //{
-                //    AddPipettingInfo4FixedRange(pipettingInfos, sameMainIDItems);
-                //}
-                //else
+                List<StartEnd> ranges = ParseRanges(first.sExtraDescription, realStartSubIDOfThisBatch);
+                List<ItemInfo> allRangeItems = new List<ItemInfo>();
+                foreach (StartEnd range in ranges)
                 {
-                    List<StartEnd> ranges = ParseRanges(first.sExtraDescription, realStartSubIDOfThisBatch);
-                    List<ItemInfo> allRangeItems = new List<ItemInfo>();
-                    foreach (StartEnd range in ranges)
-                    {
-                        List<ItemInfo> sameRangeItems = sameMainIDItems.Where(x => InRange(x, range)).ToList();
-                        if (sameRangeItems.Count > 0)
-                            AddPipettingInfo4ThisRange(pipettingInfos, sameRangeItems, range);
-                        allRangeItems.AddRange(sameRangeItems);
-                    }
-                    allRangeItems = allRangeItems.Distinct().ToList();
-                    sameMainIDItems = sameMainIDItems.Except(allRangeItems).ToList();
-                    foreach (var item in sameMainIDItems)
-                    {
-                        AddPipettingInfo(pipettingInfos, item, false);
-                        usedWells++;
-                    }
+                    List<ItemInfo> sameRangeItems = sameMainIDItems.Where(x => InRange(x, range)).ToList();
+                    if (sameRangeItems.Count > 0)
+                        AddPipettingInfo4ThisRange(pipettingInfos, sameRangeItems, range);
+                    allRangeItems.AddRange(sameRangeItems);
                 }
-                //firstItemOflastBatch = first;
+                allRangeItems = allRangeItems.Distinct().ToList();
+                sameMainIDItems = sameMainIDItems.Except(allRangeItems).ToList();
+                foreach (var item in sameMainIDItems)
+                {
+                    AddPipettingInfo(pipettingInfos, item, false);
+                    usedWells++;
+                }
             }
           
             return pipettingInfos;
@@ -670,10 +664,6 @@ namespace genscript
       
         }
 
-        //private bool IsSameMeaningfulRange(string s1, string s2)
-        //{
-        //    return s1 == s2;
-        //}
         private void AddPipettingInfo4FixedRange(List<PipettingInfo> pipettingInfos, List<ItemInfo> sameMainIDItems)
         {
             var first = sameMainIDItems.First();
@@ -789,33 +779,6 @@ namespace genscript
             Debug.WriteLine(string.Format("plateName:{0},srcWell{1},dstLabware {2},dstWellID {3}", itemInfo.plateName, itemInfo.srcWellID, dstLabware,dstWellID));
         }
 
-      
-
-        //private List<string> GenerateThisGroup(List<ItemInfo> itemsThisGroup, ref int finishedItemsCnt)
-        //{
-        //    List<string> wklistThisGroup = new List<string>();
-        //    ItemInfo firstItem = itemsThisGroup.First();
-        //    string sExtraDesc = firstItem.sExtraDescription;
-        //    int pos = sExtraDesc.IndexOf("**");
-        //    int lastPos = sExtraDesc.LastIndexOf("**");
-            
-        //    if( lastPos != sExtraDesc.Length - 2)
-        //        throw new Exception("Invalid remarks! Last two char is NOT '*'");
-        //    if (pos == -1 && pos != lastPos)
-        //        throw new Exception("Invalid remarks! Cannot find '*'");
-        //    sExtraDesc = sExtraDesc.Substring(pos+2);
-        //    sExtraDesc = sExtraDesc.Substring(0, sExtraDesc.Length - 2);
-        //    List<StartEnd> ranges = ParseRanges(sExtraDesc);
-        //    int indexInGrp = 0;
-        //    foreach (ItemInfo itemInfo in itemsThisGroup)
-        //    {
-        //        wklistThisGroup.AddRange(GenerateThisItem(itemInfo, ranges, OdSheet.vals[indexInGrp + finishedItemsCnt]));
-        //        indexInGrp++;
-        //    }
-        //    finishedItemsCnt += itemsThisGroup.Count;
-        //    return wklistThisGroup;
-        //    //Console.WriteLine("==============================");
-        //}
 
         private List<StartEnd> ParseRanges(string s, int firstSubID)
         {
@@ -826,37 +789,15 @@ namespace genscript
             return ranges;
         }
 
-        //private void IsOnBoundary(ItemInfo itemInfo, ref bool onStart, ref bool onEnd, ref bool needPooling)
-        //{
-        //    string sExtraDesc = itemInfo.sExtraDescription;
-        //    int pos = sExtraDesc.IndexOf("**");
-        //    int lastPos = sExtraDesc.LastIndexOf("**");
-        //    if (lastPos != sExtraDesc.Length - 2)
-        //        throw new Exception("Invalid remarks! Last two char is NOT '*'");
-        //    if (pos == -1 && pos != lastPos)
-        //        throw new Exception("Invalid remarks! Cannot find '*'");
-        //    sExtraDesc = sExtraDesc.Substring(pos + 2);
-        //    sExtraDesc = sExtraDesc.Substring(0, sExtraDesc.Length - 2);
-        //    List<StartEnd> ranges = ParseRanges(sExtraDesc, );
-
-        //    List<string> strs = new List<string>();
-        //    int subId = itemInfo.subID;
-        //    //bool isOnBoundary = ranges.Exists(x => x.start == subId || x.end == subId);
-        //    //return isOnBoundary;
-        //    onStart = ranges.Exists(x => x.start == subId);
-        //    onEnd = ranges.Exists(x => x.end == subId);
-        //    needPooling = ranges.Exists(x => subId < x.end && subId > x.start);
-        //}
-
         private string GetMeaningfulRange(string s)
         {
-            string sExtraDesc = s;
+            string sExtraDesc = s.Trim();
             int pos = sExtraDesc.IndexOf("**");
             int lastPos = sExtraDesc.LastIndexOf("**");
             if (lastPos != sExtraDesc.Length - 2)
                 throw new Exception("Invalid remarks! Last two chars is NOT '*'");
-            if (pos == -1)
-                throw new Exception("Invalid remarks! first two chars is NOT '*'");
+            //if (pos == -1)
+            //    throw new Exception("Invalid remarks! first two chars is NOT '*'");
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!");
             sExtraDesc = sExtraDesc.Substring(pos + 2);
@@ -864,44 +805,7 @@ namespace genscript
             return sExtraDesc;
         }
 
-        //private bool IsOnBoundary(ItemInfo itemInfo, int firstSubID )
-        //{
-        //    List<StartEnd> ranges = ParseRanges(itemInfo.sExtraDescription, firstSubID);
-        //    List<string> strs = new List<string>();
-        //    int subId = itemInfo.subID;
-        //    bool isOnBoundary = ranges.Exists(x => x.start == subId || x.end == subId);
-        //    return isOnBoundary;
-        //}
-        //private List<string> GenerateThisItem(ItemInfo itemInfo, double vol)
-        //{
-        //    bool isOnBoundary = IsOnBoundary(itemInfo);
-        //    string sAspirate = "";
-        //    string sDispense = "";
-        //    List<string> strs = new List<string>();
-        //    if (isOnBoundary)
-        //    {
-        //        if( usedWells != 0)
-        //            Move2NextDstWell();
-        //        sAspirate = string.Format("A;{0};;;{1};;{2};;;",
-        //                 itemInfo.mainID,
-        //                 itemInfo.srcWellID,
-        //                 vol*10);
-        //        strs.Add(sAspirate);
-        //        sDispense = GenerateDispense(vol*10); //aspirate keeps,but dispense changes
-        //        strs.Add(sDispense);
-        //        strs.Add("W;");
-        //    }
-        //    sAspirate = string.Format("A;{0};;;{1};;{2};;;",
-        //                itemInfo.mainID,
-        //                itemInfo.srcWellID,
-        //                vol);
-        //    sDispense = GenerateDispense(vol);
-        //    strs.Add(sAspirate);
-        //    strs.Add(sDispense);
-        //    strs.Add("W;");
-        //    return strs;
-        //}
-
+     
         private string GetAspirate(string sLabware,int srcWellID, double vol)
         {
             string sAspirate = string.Format("A;{0};;;{1};;{2};;;",
@@ -919,24 +823,7 @@ namespace genscript
               vol);
             return sDispense;
         }
-        //private string GenerateDispense(double vol)
-        //{
-        //    string slabwareID = "";
-        //    int wellID = 0;
-        //    CalculateDestPos(ref slabwareID, ref wellID);
-        //    string sDispense = string.Format("D;{0};;;{1};;{2};;;",
-        //        slabwareID,
-        //        wellID,
-        //        vol);
-                
-            
-        //    return sDispense;
-        //}
-
-        //private void Move2NextDstWell()
-        //{
-        //    usedWells++;
-        //}
+       
 
         private void CalculateDestPos(int usedWells,ref string slabwareID, ref int wellID)
         {
@@ -961,13 +848,7 @@ namespace genscript
             return rowIndex * 6 + colIndex + 1;
         }
 
-        //private string GenerateThisItem(ItemInfo itemInfo)
-        //{
-        //    string wklistThisItem = "";
-
-
-        //    return wklistThisItem;
-        //}
+     
 
         private List<StartEnd> ParseMeaningfulRanges(string sExtraDesc, int firstSubID)
         {
