@@ -6,6 +6,7 @@ using System.Configuration;
 using System.IO;
 using Microsoft.Office.Interop.Excel;
 using System.Reflection;
+using Mix2Plate;
 
 namespace genscript
 {
@@ -169,9 +170,6 @@ namespace genscript
                         }
                         File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
                     }
-
-                    
-                   
                 }
                 //add start end to tubes
                 var startEndPipettings = worklist.AddStartEnd2EPTube(allPipettingInfos);

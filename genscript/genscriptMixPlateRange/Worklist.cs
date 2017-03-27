@@ -120,8 +120,8 @@ namespace genscript
                 labwareMappedInt = 2;
             else if (x.dstLabware.Contains("End"))
                 labwareMappedInt = 3;
-            string[] strs = x.sPrimerID.Split('_');
-            return int.Parse(strs[1])  + labwareMappedInt;
+            string sPrimer = x.sPrimerID.Substring(1);
+            return int.Parse(sPrimer) + labwareMappedInt;
         }
 
         private IEnumerable<PipettingInfo> CloneInfos(List<PipettingInfo> pipettingInfos)
@@ -248,12 +248,10 @@ namespace genscript
 
         private string GetPrimerID(IGrouping<int,PipettingInfo> sameGroupPipettingInfo)
         {
-            
             if (sameGroupPipettingInfo.Count() == 1)
                 return sameGroupPipettingInfo.FirstOrDefault().sPrimerID;
-            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => GetSubID(x.sPrimerID)).ToList();
-            
-                
+            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => x.sPrimerID).ToList();
+
             string first = pipettingsInfo.First().sPrimerID;
             string last = pipettingsInfo.Last().sPrimerID;
             if (pipettingsInfo.First().dstLabware != "Mix")
@@ -261,14 +259,8 @@ namespace genscript
             int underlinePos = first.IndexOf("_");
             string suffixLast = last.Substring(underlinePos + 1);
             return first + "-" + suffixLast;
-
         }
 
-        private int GetSubID(string s)
-        {
-            string[] strs = s.Split('_');
-            return int.Parse(strs[1]);
-        }
 
         private List<string> GenerateWorklist(List<PipettingInfo> bigVols, List<PipettingInfo> normalVols)
         {
@@ -583,8 +575,21 @@ namespace genscript
             var startPlatePipetting = pipettingInfos.Where(x => x.dstLabware == "Start").OrderBy(x=>x.dstWellID).ToList();
             var endPlatePipetting = pipettingInfos.Where(x => x.dstLabware == "End").OrderBy(x => x.dstWellID).ToList();
             if (startPlatePipetting.Count != endPlatePipetting.Count)
+            {
+                foreach(var pipetting in startPlatePipetting)
+                {
+                    Debug.WriteLine(pipetting.sPrimerID);
+                }
+                Debug.WriteLine("===================");
+                foreach (var pipetting in endPlatePipetting)
+                {
+                    Debug.WriteLine(pipetting.sPrimerID);
+                }
+
                 throw new Exception(string.Format("Start Plate total count:{0} != End Plate total count:{1}",
                     startPlatePipetting.Count, endPlatePipetting.Count));
+            }
+                
             int vol  = int.Parse(ConfigurationManager.AppSettings["EPVolume"]);
             string dstLabware = "";
             int dstWellID = 0;
@@ -785,13 +790,13 @@ namespace genscript
 
         private string GetMeaningfulRange(string s)
         {
-            string sExtraDesc = s;
+            string sExtraDesc = s.Trim();
             int pos = sExtraDesc.IndexOf("**");
             int lastPos = sExtraDesc.LastIndexOf("**");
             if (lastPos != sExtraDesc.Length - 2)
-                throw new Exception("Invalid remarks! Last two chars is NOT '**'");
-            if (pos == -1)
-                throw new Exception("Invalid remarks! first two chars is NOT '**'");
+                throw new Exception("Invalid remarks! Last two chars is NOT '*'");
+            //if (pos == -1)
+            //    throw new Exception("Invalid remarks! first two chars is NOT '*'");
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!");
             sExtraDesc = sExtraDesc.Substring(pos + 2);
