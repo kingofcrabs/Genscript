@@ -798,14 +798,14 @@ namespace genscript
             string sExtraDesc = s.Trim();
             int pos = sExtraDesc.IndexOf("**");
             int lastPos = sExtraDesc.LastIndexOf("**");
-            if (lastPos != sExtraDesc.Length - 2)
-                throw new Exception("Invalid remarks! Last two chars is NOT '*'");
+            //if (lastPos != sExtraDesc.Length - 2)
+            //    throw new Exception("Invalid remarks! Last two chars is NOT '*'");
             //if (pos == -1)
             //    throw new Exception("Invalid remarks! first two chars is NOT '*'");
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!");
             sExtraDesc = sExtraDesc.Substring(pos + 2);
-            sExtraDesc = sExtraDesc.Substring(0, sExtraDesc.Length - 2);
+            sExtraDesc = sExtraDesc.Substring(0, lastPos - 2);
             return sExtraDesc;
         }
 

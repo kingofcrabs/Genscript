@@ -68,6 +68,9 @@ namespace genscript
 
             foreach (List<string> strs in strLists)
             {
+                if (IsEmptySample(strs))
+                    continue;
+
                 string primerName = GetMainPrimerName(strs[NameColumn]);
                 if (strs[extraDescriptionColumn] != string.Empty)
                 {
@@ -82,9 +85,14 @@ namespace genscript
             return itemsInfo;
         }
 
+        private bool IsEmptySample(List<string> strs)
+        {
+            return strs.First() == "";
+        }
+
         private string GetMainPrimerName(string name)
         {
-            string[] strs = name.Split('-');
+            string[] strs = name.Split('_');
             return strs[0];
 
         }
