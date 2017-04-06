@@ -4,16 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Configuration;
 
-namespace genscript
+namespace One2X
 {
     class Common
     {
-        public static int rowCnt = 8;
-        public static int colCnt = 12;
-        public static bool Is384;
+        public static int rows = 8;
+        public static int cols = 12;
         public static int GetWellID(int rowIndex, int colIndex)
         {
-            return colIndex * rowCnt + rowIndex + 1;
+            return colIndex * 8 + rowIndex + 1;
         }
 
         public static bool Mix2Plate
@@ -46,8 +45,8 @@ namespace genscript
 
         public static string GetWellDesc(int wellID)
         {
-            int colIndex = (wellID - 1) / rowCnt;
-            int rowIndex = wellID - colIndex * rowCnt - 1;
+            int colIndex = (wellID - 1) / 8;
+            int rowIndex = wellID - colIndex * 8 - 1;
             return string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
         }
 
@@ -71,8 +70,7 @@ namespace genscript
             {
                 return true;
             }
-            int maxID = Common.Is384 ? 384 : 96;
-            return wellID < 0 || wellID > maxID;
+            return wellID < 0 || wellID > 96;
         }
     }
 }

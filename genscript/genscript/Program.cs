@@ -16,6 +16,11 @@ namespace genscript
         {
             GlobalVars.LabwareWellCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
             GlobalVars.WorkingFolder = ConfigurationManager.AppSettings["workingFolder"] + "\\";
+            Common.Is384 = bool.Parse(ConfigurationManager.AppSettings["Is384"]);
+            if (Common.Is384)
+            {
+                SetStaticsFor384();
+            }
             Convert2CSV();
 #if DEBUG
             DoJob();
@@ -32,12 +37,19 @@ namespace genscript
             Console.ReadKey();
         }
 
+        private static void SetStaticsFor384()
+        {
+            Common.colCnt *= 2;
+            Common.rowCnt *= 2;
+            OdSheet.headIndex = 21;
+        }
+
         public static void DoJob()
         {
             string sHeader = "srcLabel,srcWell,dstLabel,dstWell,volume";
             string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
             List<string> files = Directory.EnumerateFiles(GlobalVars.WorkingFolder, "*csv").ToList();
-            List<string> optFiles = files.Where(x => x.Contains("_192")).ToList();
+            List<string> optFiles = files.Where(x => x.Contains("_192") || x.Contains("_384")).ToList();
             List<string> odFiles = files.Where(x => x.Contains("_OD")).ToList();
             optFiles = optFiles.OrderBy(x => GetSubString(x)).ToList();
             odFiles = odFiles.OrderBy(x => GetSubString(x)).ToList();
@@ -92,7 +104,6 @@ namespace genscript
                 csvFormatstrs.Add(sHeader);
                 readablecsvFormatStrs.Add(sReadableHeader);
                 bool mix2EPTubes = !Common.Mix2Plate;
-
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
                 int filesPerBatch = mix2EPTubes ?  2 : Common.PlateCnt;
                 int batchCnt = (optCSVFiles.Count + filesPerBatch - 1) / filesPerBatch;

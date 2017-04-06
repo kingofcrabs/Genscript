@@ -503,9 +503,9 @@ namespace genscript
         private string GetWellStr(int wellID)
         {
             int rowIndex = wellID - 1;
-            while (rowIndex >= 8)
-                rowIndex -= 8;
-            int colIndex = (wellID - 1) / 8;
+            while (rowIndex >= Common.rowCnt)
+                rowIndex -= Common.rowCnt;
+            int colIndex = (wellID - 1) / Common.rowCnt;
             char rowID = (char)('A' + rowIndex);
             string sWell = string.Format("{0}{1:D2}", rowID, colIndex + 1);
             return sWell;
@@ -805,7 +805,8 @@ namespace genscript
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!");
             sExtraDesc = sExtraDesc.Substring(pos + 2);
-            sExtraDesc = sExtraDesc.Substring(0, lastPos - 2);
+            lastPos = sExtraDesc.LastIndexOf("**");//ignore the content before first **;
+            sExtraDesc = sExtraDesc.Substring(0, lastPos - 1);
             return sExtraDesc;
         }
 

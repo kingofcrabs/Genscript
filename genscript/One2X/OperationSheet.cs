@@ -3,31 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using System.Configuration;
 
-namespace genscript
+namespace One2X
 {
     class OperationSheet
     {
         int startIndex = 8;
         //int endIndex = 55;
-        int cnt = 96;
+        int cnt = 48;
         int extraDescriptionColumn = 7; //index
         int IDColumn = 0;
         int NameColumn = 6;
         int srcWellColumn = 4;  //index
+        int SliceCntColumn = 3; 
         private string sPlateName = "";
         public static string empty = "empty";
+
         List<ItemInfo> itemsInfo;
         public OperationSheet(string sCSVFile)
         {
             sPlateName = Common.GetPlateName(sCSVFile);
             List<string> strs = File.ReadAllLines(sCSVFile).ToList();
-           
-            if(Common.Is384)
-            {
-                cnt = 192;
-            }
             strs = strs.GetRange(startIndex, cnt);
             var firstHalfStrLists = GetHalfStrLists(strs);
             foreach (List<string> tmpStrs in firstHalfStrLists)
@@ -113,6 +109,8 @@ namespace genscript
             ItemInfo itemInfo = new ItemInfo();
             itemInfo.sExtraDescription = sExtraDescription;
             itemInfo.sID = strs[IDColumn];
+            itemInfo.sliceCnt = int.Parse(strs[SliceCntColumn]);
+
             string name = strs[NameColumn];
             ParseID( itemInfo.sID,name,ref itemInfo);
             itemInfo.srcWellID = Common.GetWellID(strs[srcWellColumn]);
@@ -187,6 +185,7 @@ namespace genscript
         public string plateName;
         public int srcWellID;
         public string sExtraDescription;
+        public int sliceCnt;
         public int vol;
     }
 

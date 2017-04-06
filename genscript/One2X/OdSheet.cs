@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace genscript
+namespace One2X
 {
     class OdSheet
     {
-        public static int headIndex = 37;
+        static int headIndex = 37;
         //static public List<int> vals = new List<int>();
         //static public List<List<int>> eachPlateVals = new List<List<int>>();
         static public Dictionary<string, Dictionary<int, int>> eachPlateID_Vols = new Dictionary<string, Dictionary<int, int>>(); 
@@ -21,7 +21,7 @@ namespace genscript
 
             List<string> strs = File.ReadAllLines(sCSVFile).ToList();
             string headContent = strs[headIndex];
-            strs = strs.GetRange(headIndex+1, Common.rowCnt);
+            strs = strs.GetRange(headIndex+1, Common.rows);
             Dictionary<int, int> pos_vals = new Dictionary<int, int>();
             Console.WriteLine("OD values are as following:");
             Console.WriteLine(headContent);
@@ -30,8 +30,8 @@ namespace genscript
             {
                 Console.WriteLine(s);
                 List<string> thisLineStrs = s.Split(',').ToList();
-                thisLineStrs = thisLineStrs.GetRange(1, Common.colCnt);
-                for (int i = 0; i < Common.colCnt; i++)
+                thisLineStrs = thisLineStrs.GetRange(1, Common.cols);
+                for (int i = 0; i < Common.cols; i++)
                 {
                     int curWellID = Common.GetWellID(curRowIndex,i);
                     int vol = 0;

@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genscriptMix2Range", "gensc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genscript", "genscript\genscript.csproj", "{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "One2X", "One2X\One2X.csproj", "{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,16 @@ Global
 		{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}.Release|Mixed Platforms.Build.0 = Release|x86
 		{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}.Release|x86.ActiveCfg = Release|x86
 		{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}.Release|x86.Build.0 = Release|x86
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
