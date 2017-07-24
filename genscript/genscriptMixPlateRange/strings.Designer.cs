@@ -61,7 +61,7 @@ namespace Mix2Plate {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 0.66.
+        ///   Looks up a localized string similar to 0.68.
         /// </summary>
         internal static string version {
             get {
