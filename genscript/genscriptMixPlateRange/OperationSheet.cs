@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using System.Diagnostics;
 
 namespace genscript
 {
@@ -12,10 +11,9 @@ namespace genscript
         int startIndex = 8;
         //int endIndex = 55;
         int cnt = 48;
-        int extraDescriptionColumn = 7; //index
+        int extraDescriptionColumn = 7;
         int IDColumn = 0;
-        int NameColumn = 6;
-        int srcWellColumn = 4;  //index
+        int srcWellColumn = 6;
         private string sPlateName = "";
         public static string empty = "empty";
         List<ItemInfo> itemsInfo;
@@ -71,33 +69,51 @@ namespace genscript
         private List<ItemInfo> GetItemsInfo(List<List<string>> strLists)
         {
             List<ItemInfo> itemsInfo = new List<ItemInfo>();
-            Dictionary<string, string> primerName_ExtraDescription = new Dictionary<string, string>();
-
+            string sExtraDescription = "";
+            string sCurrentIndex = strLists.First()[0];
+            sCurrentIndex = GetMainIndex(sCurrentIndex);
+            foreach (List<string> strs in strLists)
+            {
+                string tmpCurrentIndex = GetMainIndex(strs[IDColumn]);
+                if (tmpCurrentIndex != sCurrentIndex)
+                {
+                    sCurrentIndex = tmpCurrentIndex;
+                    if( strs[extraDescriptionColumn] == "")
+                        strs[extraDescriptionColumn] = empty;
+                }
+            }
 
             foreach (List<string> strs in strLists)
             {
-                string primerName = GetMainPrimerName(strs[NameColumn]);
-                if (primerName == "G109280-5")
-                    Debug.WriteLine("test");
                 if (strs[extraDescriptionColumn] != string.Empty)
-                {
-                    if (!primerName_ExtraDescription.ContainsKey(primerName))
-                        primerName_ExtraDescription.Add(primerName, strs[extraDescriptionColumn]);
-                }
-                string extraDesc = primerName_ExtraDescription.ContainsKey(primerName) ? primerName_ExtraDescription[primerName] : empty;
-
-                itemsInfo.Add(GetItemInfo(strs,extraDesc));
-
+                    sExtraDescription = strs[extraDescriptionColumn];
+                if (strs[0] == "")
+                    continue;
+                CheckExtraDescription(sExtraDescription);
+                itemsInfo.Add(GetItemInfo(strs, sExtraDescription));
             }
+            
             return itemsInfo;
         }
 
-        private string GetMainPrimerName(string name)
-        {
-            string[] strs = name.Split('_');
-            return strs[0];
 
+        private void CheckExtraDescription(string s)
+        {
+            if (s == empty)
+                return;
+            string sExtraDesc = s;
+            string moreInfo = "The description is: " + s;
+            int pos = sExtraDesc.IndexOf("**");
+            int lastPos = sExtraDesc.LastIndexOf("**");
+            if (lastPos != sExtraDesc.Length - 2)
+                throw new Exception("Invalid remarks! Last two chars is NOT '**'" + moreInfo);
+            if (pos == -1)
+                throw new Exception("Invalid remarks! first two chars is NOT '**'" + moreInfo);
+            if (lastPos == pos)
+                throw new Exception("Invalid remarks! Only one ** found!" + moreInfo);
+            
         }
+
         private string GetMainIndex(string sCurrentIndex)
         {
             string[] strs = sCurrentIndex.Split('_');
@@ -109,31 +125,17 @@ namespace genscript
             ItemInfo itemInfo = new ItemInfo();
             itemInfo.sExtraDescription = sExtraDescription;
             itemInfo.sID = strs[IDColumn];
-            string name = strs[NameColumn];
-            ParseID( itemInfo.sID,name,ref itemInfo);
+            ParseID(itemInfo.sID,ref itemInfo);
             itemInfo.srcWellID = Common.GetWellID(strs[srcWellColumn]);
             return itemInfo;
         }
 
-        private void ParseID(string sPrimerID, string sPrimerName, ref ItemInfo itemInfo)
+        private void ParseID(string src,ref ItemInfo itemInfo)
         {
-            List<string> strs = sPrimerName.Split('_').ToList();
+            List<string> strs = src.Split('_').ToList();
             itemInfo.plateName = sPlateName;
             itemInfo.mainID = strs[0];
-            string sSubID = strs.Last();
-            if (itemInfo.sExtraDescription == empty)
-            {
-                itemInfo.subID = 1;
-            }
-            else
-            {
-                int val = 0;
-                bool bok = int.TryParse(strs.Last(), out val);
-                if (!bok)
-                    throw new Exception(string.Format("Primer :{0}'s name is invalid!", sPrimerID));
-                itemInfo.subID = val;
-            }
-            
+            itemInfo.subID = int.Parse(strs[1]);
         }
 
         private List<List<string>> GetHalfStrLists(List<string> strs,bool firstHalf = true)
