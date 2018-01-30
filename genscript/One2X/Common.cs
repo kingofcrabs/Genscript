@@ -8,11 +8,22 @@ namespace One2X
 {
     class Common
     {
-        public static int rows = 8;
-        public static int cols = 12;
+        public static int rowCnt = 8;
+        public static int colCnt = 12;
         public static int GetWellID(int rowIndex, int colIndex)
         {
             return colIndex * 8 + rowIndex + 1;
+        }
+
+        public static void SwitchTo96()
+        {
+            rowCnt = 8;
+            colCnt = 12;
+        }
+        public static  void SwitchTo384()
+        {
+            rowCnt = 16;
+            colCnt = 24;
         }
 
         public static bool Mix2Plate
@@ -45,8 +56,8 @@ namespace One2X
 
         public static string GetWellDesc(int wellID)
         {
-            int colIndex = (wellID - 1) / 8;
-            int rowIndex = wellID - colIndex * 8 - 1;
+            int colIndex = (wellID - 1) / rowCnt;
+            int rowIndex = wellID - colIndex * rowCnt - 1;
             return string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
         }
 
@@ -70,7 +81,8 @@ namespace One2X
             {
                 return true;
             }
-            return wellID < 0 || wellID > 96;
+            int maxWellID = rowCnt * colCnt;
+            return wellID < 0 || wellID > maxWellID;
         }
     }
 }

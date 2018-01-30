@@ -21,7 +21,7 @@ namespace One2X
 
             List<string> strs = File.ReadAllLines(sCSVFile).ToList();
             string headContent = strs[headIndex];
-            strs = strs.GetRange(headIndex+1, Common.rows);
+            strs = strs.GetRange(headIndex+1, Common.rowCnt);
             Dictionary<int, int> pos_vals = new Dictionary<int, int>();
             Console.WriteLine("OD values are as following:");
             Console.WriteLine(headContent);
@@ -30,8 +30,8 @@ namespace One2X
             {
                 Console.WriteLine(s);
                 List<string> thisLineStrs = s.Split(',').ToList();
-                thisLineStrs = thisLineStrs.GetRange(1, Common.cols);
-                for (int i = 0; i < Common.cols; i++)
+                thisLineStrs = thisLineStrs.GetRange(1, Common.colCnt);
+                for (int i = 0; i < Common.colCnt; i++)
                 {
                     int curWellID = Common.GetWellID(curRowIndex,i);
                     int vol = 0;

@@ -44,7 +44,7 @@ namespace One2X
                 Directory.CreateDirectory(outputFolder);
 
             string sResultFile = outputFolder + "result.txt";
-            File.WriteAllText(sResultFile, "false");
+            File.WriteAllText(sResultFile, "False");
 
             if (optFiles.Count != odFiles.Count)
             {
@@ -72,79 +72,93 @@ namespace One2X
             }
             optCSVFiles.Sort();
             odCSVFiles.Sort();
-            bool mix2EPTubes = !Common.Mix2Plate;
-            List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
-            int filesPerBatch = mix2EPTubes ? 2 : Common.PlateCnt;
-            int batchCnt = (optCSVFiles.Count + filesPerBatch - 1) / filesPerBatch;
-            File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
 
+            List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
             List<ItemInfo> itemsInfo = new List<ItemInfo>();
-            List<OperationSheetQueueInfo> queueInfos = new List<OperationSheetQueueInfo>();
-            if (mix2EPTubes) //write dummy files
+
+            if (optCSVFiles.Count != 4)
+                throw new Exception("csv files count must be 4!");
+
+            for (int i = 0; i < optCSVFiles.Count; i++)
             {
-                //for (int i = 0; i < 4; i++)
-                //{
-                //    string sOutputFile = outputFolder + string.Format("{0}.csv", i + 1);
-                //    File.WriteAllLines(sOutputFile, new List<string>());
-                //}
-            }
-            else //pass all itemsInfo to get whole pipettingInfo
-            {
-                for (int i = 0; i < optCSVFiles.Count; i++)
-                {
-                    OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
-                    OperationSheetQueueInfo queueInfo = new OperationSheetQueueInfo(optSheet, optCSVFiles[i]);
-                    queueInfos.Add(queueInfo);
-                    OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
-                    itemsInfo.AddRange(optSheet.Items);
-                }
+                OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
+                OdSheet odSheet = new OdSheet(odCSVFiles[i], i);
+                itemsInfo.AddRange(optSheet.Items);
             }
 
             Worklist wklist = new Worklist();
-            for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
-            {
-                int startFileIndex = batchIndex * filesPerBatch;
-                string sOutputGwlFile = outputFolder + string.Format("{0}.gwl", batchIndex + 1);
-                List<string> batchPlateNames = new List<string>();
-                List<OperationSheetQueueInfo> batchPlateInfos = new List<OperationSheetQueueInfo>();
-                
-                for (int i = 0; i < filesPerBatch; i++)
-                {
-                    int curFileIndex = startFileIndex + i;
-                    if (!mix2EPTubes && curFileIndex >= queueInfos.Count)
-                        break;
-                    var filePath = mix2EPTubes ? optCSVFiles[curFileIndex] : queueInfos[curFileIndex].filePath;
-                    batchPlateNames.Add(GetSrcPlateName(filePath));
-                    if (mix2EPTubes) //prepare itemInfos
-                    {
-                        OperationSheet optSheet = new OperationSheet(optCSVFiles[curFileIndex]);
-                        OdSheet odSheet = new OdSheet(odCSVFiles[curFileIndex], curFileIndex);
-                        itemsInfo.AddRange(optSheet.Items);
-                    }
-                    else //prepare the plates
-                    {
-                        batchPlateInfos.Add(queueInfos[curFileIndex]);
-                    }
-                }
+            string sOutputGwlFile = outputFolder + "allInOne.gwl";
+            var pipettingInfos = wklist.Generate(itemsInfo, sOutputGwlFile);
+            allPipettingInfos.AddRange(pipettingInfos);
+            itemsInfo.Clear();
+            WriteReadable(wklist,allPipettingInfos,outputFolder);
 
-                if (mix2EPTubes)
-                {
-                    wklist.Generate(itemsInfo, sOutputGwlFile);
-                    itemsInfo.Clear();
-                }
-                else
-                {
-                    throw new Exception("Not support mix to plate!");
-                }
-                Console.WriteLine(string.Format("Version is: {0}", strings.version));
-            }
+            Console.WriteLine(string.Format("Version is: {0}", strings.version));
+            File.WriteAllText(sResultFile, "True");
+           
         }
 
+        private static void WriteReadable(Worklist wklist, List<PipettingInfo> allPipettingInfos,string outputFolder)
+        {
+            List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
+            primerIDsOfLabwareList = wklist.GetWellPrimerID(allPipettingInfos);
+            List<string> readablecsvFormatStrs = new List<string>();
+            string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
+            readablecsvFormatStrs.Add(sReadableHeader);
+            MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
+            string sReadableOutputFile = outputFolder + "readableOutput.csv";
+            File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
+        }
+
+
+        //private static List<PipettingInfo> GetPipettingInfosThisBatch(List<PipettingInfo> allPipettingInfos, List<OperationSheetQueueInfo> batchPlateInfos)
+        //{
+        //    List<PipettingInfo> batchPipettigInfos = allPipettingInfos.Where(x => InOneOfTheRanges(x.sPrimerID, batchPlateInfos)).ToList();
+        //    List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>();
+        //    foreach (var pipettingInfo in batchPipettigInfos)
+        //    {
+        //        tmpPipettingInfos.Add(new PipettingInfo(pipettingInfo));
+        //    }
+        //    return tmpPipettingInfos;
+        //}
         private static string GetSrcPlateName(string sFilePath)
         {
             FileInfo fileInfo = new FileInfo(sFilePath);
             string name = fileInfo.Name;
             return name.Substring(0, name.Length - 8);
+        }
+
+        static private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList)
+        {
+            int startLine = 0;
+            bool is96Plate = GlobalVars.LabwareWellCnt != 16;
+            if (is96Plate)
+            {
+                startLine = 18;
+                foreach (List<string> well_PrimerIDs in well_PrimerIDsList)
+                {
+                    for (int i = 0; i < well_PrimerIDs.Count; i++)
+                    {
+                        readableOutput[i + startLine] += ",," + well_PrimerIDs[i];
+                    }
+                    startLine += (Common.rowCnt + 3);
+                }
+                return;
+            }
+
+            if (GlobalVars.LabwareWellCnt == 16)
+            {
+                foreach (List<string> strs in well_PrimerIDsList)
+                {
+                    for (int i = 0; i < strs.Count; i++)
+                    {
+                        readableOutput[i] += ",," + strs[i];
+                    }
+                }
+                return;
+            }
+
+          
         }
        
         private static string GetSubString(string x)
