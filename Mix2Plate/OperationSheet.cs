@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace Mix2Plate
+namespace genscript384
 {
     class OperationSheet
     {
         int startIndex = 8;
         //int endIndex = 55;
-        int cnt = 48;
+        int cnt = 192;
         int extraDescriptionColumn = 7;
         int IDColumn = 0;
         int srcWellColumn = 4;
@@ -18,6 +18,10 @@ namespace Mix2Plate
         private string sPlateName = "";
         public static string empty = "empty";
         List<ItemInfo> itemsInfo;
+
+
+
+
 
         public OperationSheet(string sCSVFile)
         {
@@ -53,13 +57,13 @@ namespace Mix2Plate
             {
                 itemsInfo.AddRange(GetItemsInfo(firstHalfStrLists));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new Exception("Invalid file: " + sCSVFile + " Error message is: " + ex.Message);
             }
         }
 
-      
+
         public List<ItemInfo> Items
         {
             get
@@ -102,6 +106,7 @@ namespace Mix2Plate
         {
             string[] strs = name.Split('_');
             return strs[0];
+
         }
 
         private void CheckExtraDescription(string s)
@@ -118,7 +123,7 @@ namespace Mix2Plate
                 throw new Exception("Invalid remarks! first two chars is NOT '**'" + moreInfo);
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!" + moreInfo);
-            
+
         }
 
         private string GetMainIndex(string sCurrentIndex)
@@ -168,21 +173,21 @@ namespace Mix2Plate
         //    itemInfo.subID = int.Parse(strs[1]);
         //}
 
-        private List<List<string>> GetHalfStrLists(List<string> strs,bool firstHalf = true)
+        private List<List<string>> GetHalfStrLists(List<string> strs, bool firstHalf = true)
         {
             List<List<string>> halfStrs = new List<List<string>>();
             foreach (string s in strs)
             {
                 if (firstHalf)
-                    halfStrs.Add(GetHalf(s,true));
+                    halfStrs.Add(GetHalf(s, true));
                 else
-                    halfStrs.Add(GetHalf(s,false));
+                    halfStrs.Add(GetHalf(s, false));
             }
             return halfStrs;
         }
 
 
-        private List<string> GetHalf(string s,bool bFirstHalf)
+        private List<string> GetHalf(string s, bool bFirstHalf)
         {
             int startIndex = 0;
             int endIndex = 8;
@@ -191,19 +196,19 @@ namespace Mix2Plate
                 startIndex = 9;
                 endIndex = 16;
             }
-            return GetSubStrs(s,startIndex,endIndex);
+            return GetSubStrs(s, startIndex, endIndex);
         }
 
         private List<string> GetSubStrs(string s, int startIndex, int endIndex)
         {
             List<string> strs = s.Split(',').ToList();
-            strs = strs.GetRange(startIndex, endIndex-startIndex+1);
+            strs = strs.GetRange(startIndex, endIndex - startIndex + 1);
             return strs;
         }
 
         private List<string> GetFirstHalf(string s)
         {
-            return GetSubStrs(s,0, 8);
+            return GetSubStrs(s, 0, 8);
         }
     }
 
@@ -228,7 +233,7 @@ namespace Mix2Plate
         public double vol;
         public int orgDstWellID;
 
-        public PipettingInfo(string sPrimerID,string srcLabware,
+        public PipettingInfo(string sPrimerID, string srcLabware,
             int srcWell, string dstLabware, int dstWell, double v)
         {
             this.sPrimerID = sPrimerID;
@@ -251,7 +256,7 @@ namespace Mix2Plate
             orgDstWellID = pipettingInfo.orgDstWellID;
         }
 
-       
-       
+
+
     }
 }

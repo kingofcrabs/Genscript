@@ -4,16 +4,24 @@ using System.Linq;
 using System.Text;
 using System.Configuration;
 
-namespace Mix2Plate
+namespace genscript384
 {
     class Common
     {
         public static int rows = 8;
+        public static int rows384 = 16;
         public static int cols = 12;
+        public static int cols384 = 24;
         public static int GetWellID(int rowIndex, int colIndex)
         {
             return colIndex * 8 + rowIndex + 1;
         }
+
+        public static int GetWellID384(int rowIndex, int colIndex)
+        {
+            return colIndex * 16 + rowIndex + 1;
+        }
+
 
         public static bool Mix2Plate
         {
@@ -42,11 +50,17 @@ namespace Mix2Plate
             sName = sName.Substring(0, pos);
             return sName;
         }
+        public static string GetWellDesc384(int wellID)
+        {
+            int colIndex = (wellID - 1) / Common.rows384;
+            int rowIndex = wellID - colIndex * Common.rows384 - 1;
+            return string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
+        }
 
         public static string GetWellDesc(int wellID)
         {
-            int colIndex = (wellID - 1) / 8;
-            int rowIndex = wellID - colIndex * 8 - 1;
+            int colIndex = (wellID - 1) / Common.rows;
+            int rowIndex = wellID - colIndex * Common.rows - 1;
             return string.Format("{0}{1}", (char)('A' + rowIndex), colIndex + 1);
         }
         public static string FormatWellID(int wellID)
@@ -57,7 +71,7 @@ namespace Mix2Plate
         {
             int rowIndex = sWell.First() - 'A';
             int colIndex = int.Parse(sWell.Substring(1))- 1;
-            return GetWellID(rowIndex, colIndex);
+            return GetWellID384(rowIndex, colIndex);
         }
 
         internal static bool IsInvalidWellID(string s)

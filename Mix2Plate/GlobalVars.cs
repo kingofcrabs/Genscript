@@ -4,7 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace Mix2Plate
+namespace genscript384
 {
     class GlobalVars
     {
