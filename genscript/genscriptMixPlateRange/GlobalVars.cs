@@ -4,7 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 
-namespace genscript384
+namespace genscript
 {
     class GlobalVars
     {

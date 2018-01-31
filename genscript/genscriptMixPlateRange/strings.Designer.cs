@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace genscript384 {
+namespace Mix2Plate {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace genscript384 {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("genscript384.strings", typeof(strings).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Mix2Plate.strings", typeof(strings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,7 +61,7 @@ namespace genscript384 {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 0.4.
+        ///   Looks up a localized string similar to 0.68.
         /// </summary>
         internal static string version {
             get {

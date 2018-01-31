@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace genscript384
+namespace genscript
 {
     class OperationSheet
     {
         int startIndex = 8;
         //int endIndex = 55;
-        int cnt = 192;
+        int cnt = 48;
         int extraDescriptionColumn = 7;
         int IDColumn = 0;
         int srcWellColumn = 4;
@@ -18,10 +18,6 @@ namespace genscript384
         private string sPlateName = "";
         public static string empty = "empty";
         List<ItemInfo> itemsInfo;
-
-
-
-
 
         public OperationSheet(string sCSVFile)
         {
@@ -57,13 +53,13 @@ namespace genscript384
             {
                 itemsInfo.AddRange(GetItemsInfo(firstHalfStrLists));
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 throw new Exception("Invalid file: " + sCSVFile + " Error message is: " + ex.Message);
             }
         }
 
-
+      
         public List<ItemInfo> Items
         {
             get
@@ -106,7 +102,6 @@ namespace genscript384
         {
             string[] strs = name.Split('_');
             return strs[0];
-
         }
 
         private void CheckExtraDescription(string s)
@@ -123,7 +118,7 @@ namespace genscript384
                 throw new Exception("Invalid remarks! first two chars is NOT '**'" + moreInfo);
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!" + moreInfo);
-
+            
         }
 
         private string GetMainIndex(string sCurrentIndex)
@@ -173,21 +168,21 @@ namespace genscript384
         //    itemInfo.subID = int.Parse(strs[1]);
         //}
 
-        private List<List<string>> GetHalfStrLists(List<string> strs, bool firstHalf = true)
+        private List<List<string>> GetHalfStrLists(List<string> strs,bool firstHalf = true)
         {
             List<List<string>> halfStrs = new List<List<string>>();
             foreach (string s in strs)
             {
                 if (firstHalf)
-                    halfStrs.Add(GetHalf(s, true));
+                    halfStrs.Add(GetHalf(s,true));
                 else
-                    halfStrs.Add(GetHalf(s, false));
+                    halfStrs.Add(GetHalf(s,false));
             }
             return halfStrs;
         }
 
 
-        private List<string> GetHalf(string s, bool bFirstHalf)
+        private List<string> GetHalf(string s,bool bFirstHalf)
         {
             int startIndex = 0;
             int endIndex = 8;
@@ -196,19 +191,19 @@ namespace genscript384
                 startIndex = 9;
                 endIndex = 16;
             }
-            return GetSubStrs(s, startIndex, endIndex);
+            return GetSubStrs(s,startIndex,endIndex);
         }
 
         private List<string> GetSubStrs(string s, int startIndex, int endIndex)
         {
             List<string> strs = s.Split(',').ToList();
-            strs = strs.GetRange(startIndex, endIndex - startIndex + 1);
+            strs = strs.GetRange(startIndex, endIndex-startIndex+1);
             return strs;
         }
 
         private List<string> GetFirstHalf(string s)
         {
-            return GetSubStrs(s, 0, 8);
+            return GetSubStrs(s,0, 8);
         }
     }
 
@@ -233,7 +228,7 @@ namespace genscript384
         public double vol;
         public int orgDstWellID;
 
-        public PipettingInfo(string sPrimerID, string srcLabware,
+        public PipettingInfo(string sPrimerID,string srcLabware,
             int srcWell, string dstLabware, int dstWell, double v)
         {
             this.sPrimerID = sPrimerID;
@@ -256,7 +251,7 @@ namespace genscript384
             orgDstWellID = pipettingInfo.orgDstWellID;
         }
 
-
-
+       
+       
     }
 }

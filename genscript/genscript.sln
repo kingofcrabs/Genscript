@@ -1,25 +1,19 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BGIConverter", "BGIConverter\BGIConverter.csproj", "{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}"
-EndProject
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3D300F10-4499-4AE6-9D6D-714FABB7D668}"
-	ProjectSection(SolutionItems) = preProject
-		genscript.vsmdi = genscript.vsmdi
-		Local.testsettings = Local.testsettings
-		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HintLabwares", "HintLabwares\HintLabwares.csproj", "{946B014F-3672-4470-A8DF-4C1ECCC868B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genscriptMix2Range", "genscriptMixPlateRange\genscriptMix2Range.csproj", "{73A4F6F9-024D-4417-9D69-6805A017BCB6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genscriptMix2Plate", "genscriptMixPlateRange\genscriptMix2Plate.csproj", "{73A4F6F9-024D-4417-9D69-6805A017BCB6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "genscript", "genscript\genscript.csproj", "{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "One2X", "One2X\One2X.csproj", "{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}"
+EndProject
 Global
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = genscript.vsmdi
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|Mixed Platforms = Debug|Mixed Platforms
@@ -29,16 +23,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Debug|Any CPU.ActiveCfg = Debug|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Debug|Mixed Platforms.Build.0 = Debug|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Debug|x86.ActiveCfg = Debug|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Debug|x86.Build.0 = Debug|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Release|Any CPU.ActiveCfg = Release|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Release|Mixed Platforms.ActiveCfg = Release|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Release|Mixed Platforms.Build.0 = Release|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Release|x86.ActiveCfg = Release|x86
-		{3727D835-AB6F-45C9-9EFB-8DE1B92E218D}.Release|x86.Build.0 = Release|x86
 		{946B014F-3672-4470-A8DF-4C1ECCC868B0}.Debug|Any CPU.ActiveCfg = Debug|x86
 		{946B014F-3672-4470-A8DF-4C1ECCC868B0}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
 		{946B014F-3672-4470-A8DF-4C1ECCC868B0}.Debug|Mixed Platforms.Build.0 = Debug|x86
@@ -69,8 +53,21 @@ Global
 		{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}.Release|Mixed Platforms.Build.0 = Release|x86
 		{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}.Release|x86.ActiveCfg = Release|x86
 		{B8C90D8A-47F4-4586-8AAF-2D9D8FAF6E03}.Release|x86.Build.0 = Release|x86
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{BDA75BD2-4DB9-437F-BCA6-76CD8A36DEC6}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = genscript.vsmdi
 	EndGlobalSection
 EndGlobal

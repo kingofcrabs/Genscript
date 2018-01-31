@@ -4,25 +4,25 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace genscript384
+namespace genscript
 {
     class OdSheet
     {
-        static int headIndex = 21;
-        static public Dictionary<string, Dictionary<int, int>> eachPlateID_Vols = new Dictionary<string, Dictionary<int, int>>();
+        static int headIndex = 37;
+        //static public List<int> vals = new List<int>();
+        //static public List<List<int>> eachPlateVals = new List<List<int>>();
+        static public Dictionary<string, Dictionary<int, int>> eachPlateID_Vols = new Dictionary<string, Dictionary<int, int>>(); 
 
-        public void ReadInfo(string sCSVFile, int plateIndex)
+        public OdSheet(string sCSVFile, int plateIndex)
         {
             var plateName = Common.GetPlateName(sCSVFile);
             if(eachPlateID_Vols.ContainsKey(plateName))
                 return;
-            Dictionary<int, int> pos_vals = new Dictionary<int, int>();
-
 
             List<string> strs = File.ReadAllLines(sCSVFile).ToList();
             string headContent = strs[headIndex];
-            strs = strs.GetRange(headIndex+1, Common.rows384);
-            
+            strs = strs.GetRange(headIndex+1, Common.rows);
+            Dictionary<int, int> pos_vals = new Dictionary<int, int>();
             Console.WriteLine("OD values are as following:");
             Console.WriteLine(headContent);
             int curRowIndex = 0;
@@ -30,10 +30,10 @@ namespace genscript384
             {
                 Console.WriteLine(s);
                 List<string> thisLineStrs = s.Split(',').ToList();
-                thisLineStrs = thisLineStrs.GetRange(1, Common.cols384);
-                for (int i = 0; i < Common.cols384; i++)
+                thisLineStrs = thisLineStrs.GetRange(1, Common.cols);
+                for (int i = 0; i < Common.cols; i++)
                 {
-                    int curWellID = Common.GetWellID384(curRowIndex,i);
+                    int curWellID = Common.GetWellID(curRowIndex,i);
                     int vol = 0;
                     if( thisLineStrs[i] != "")
                         vol = int.Parse(thisLineStrs[i]);

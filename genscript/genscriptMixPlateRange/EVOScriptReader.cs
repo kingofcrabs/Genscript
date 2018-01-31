@@ -5,7 +5,7 @@ using System.Text;
 using System.Configuration;
 using System.IO;
 
-namespace genscript384
+namespace genscript
 {
     public class EVOScriptReader
     {
