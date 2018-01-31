@@ -6,6 +6,12 @@ using System.Configuration;
 
 namespace One2X
 {
+
+    class Plate96
+    {
+        public static int rowCnt = 8;
+        public static int colCnt = 12;
+    }
     class Common
     {
         public static int rowCnt = 8;
@@ -13,6 +19,22 @@ namespace One2X
         public static int GetWellID(int rowIndex, int colIndex)
         {
             return colIndex * 8 + rowIndex + 1;
+        }
+
+        static public int RowCnt 
+        { 
+            get
+            {
+                return rowCnt;   
+            }
+        }
+
+        static public int ColumnCnt
+        {
+            get
+            {
+                return colCnt;
+            }
         }
 
         public static void SwitchTo96()
@@ -26,16 +48,7 @@ namespace One2X
             colCnt = 24;
         }
 
-        public static bool Mix2Plate
-        {
-            get
-            {
-                bool mix2PlateFlag = ConfigurationManager.AppSettings.AllKeys.Contains("Mix2Plate");
-                if(!mix2PlateFlag)
-                    return false;
-                return bool.Parse(ConfigurationManager.AppSettings["Mix2Plate"]);
-            }
-        }
+        
 
         public static int PlateCnt
         {
@@ -49,7 +62,7 @@ namespace One2X
         {
             int pos = sCSVFile.LastIndexOf("\\");
             string sName = sCSVFile.Substring(pos + 1);
-            pos = sName.IndexOf("_");
+            pos = sName.IndexOf("-");
             sName = sName.Substring(0, pos);
             return sName;
         }

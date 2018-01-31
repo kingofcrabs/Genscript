@@ -15,6 +15,9 @@ namespace One2X
         {
 
             GlobalVars.LabwareWellCnt = int.Parse(ConfigurationManager.AppSettings["labwareWellCnt"]);
+            if (GlobalVars.LabwareWellCnt == 384)
+                Common.SwitchTo384();
+
             GlobalVars.WorkingFolder = ConfigurationManager.AppSettings["workingFolder"] + "\\";
             Convert2CSV();
 #if DEBUG
@@ -35,8 +38,8 @@ namespace One2X
         private static void DoJob()
         {
             List<string> files = Directory.EnumerateFiles(GlobalVars.WorkingFolder, "*csv").ToList();
-            List<string> optFiles = files.Where(x => x.Contains("_192") ).ToList();
-            List<string> odFiles = files.Where(x => x.Contains("_OD")).ToList();
+            List<string> optFiles = files.Where(x => x.Contains("192") ).ToList();
+            List<string> odFiles = files.Where(x => x.Contains("OD")).ToList();
             optFiles = optFiles.OrderBy(x => GetSubString(x)).ToList();
             odFiles = odFiles.OrderBy(x => GetSubString(x)).ToList();
             string outputFolder = GlobalVars.WorkingFolder + "Outputs\\";
@@ -76,8 +79,8 @@ namespace One2X
             List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
             List<ItemInfo> itemsInfo = new List<ItemInfo>();
 
-            if (optCSVFiles.Count != 4)
-                throw new Exception("csv files count must be 4!");
+            if (optCSVFiles.Count != 2)
+                throw new Exception("operation files count must be 2!");
 
             for (int i = 0; i < optCSVFiles.Count; i++)
             {
@@ -87,40 +90,20 @@ namespace One2X
             }
 
             Worklist wklist = new Worklist();
-            string sOutputGwlFile = outputFolder + "allInOne.gwl";
-            var pipettingInfos = wklist.Generate(itemsInfo, sOutputGwlFile);
+        
+            List<string> readablecsvFormatStrs = new List<string>();
+            string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
+            readablecsvFormatStrs.Add(sReadableHeader);
+            var pipettingInfos = wklist.Generate(itemsInfo, readablecsvFormatStrs, outputFolder);
             allPipettingInfos.AddRange(pipettingInfos);
             itemsInfo.Clear();
-            WriteReadable(wklist,allPipettingInfos,outputFolder);
+            
 
             Console.WriteLine(string.Format("Version is: {0}", strings.version));
             File.WriteAllText(sResultFile, "True");
            
         }
 
-        private static void WriteReadable(Worklist wklist, List<PipettingInfo> allPipettingInfos,string outputFolder)
-        {
-            List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
-            primerIDsOfLabwareList = wklist.GetWellPrimerID(allPipettingInfos);
-            List<string> readablecsvFormatStrs = new List<string>();
-            string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
-            readablecsvFormatStrs.Add(sReadableHeader);
-            MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
-            string sReadableOutputFile = outputFolder + "readableOutput.csv";
-            File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
-        }
-
-
-        //private static List<PipettingInfo> GetPipettingInfosThisBatch(List<PipettingInfo> allPipettingInfos, List<OperationSheetQueueInfo> batchPlateInfos)
-        //{
-        //    List<PipettingInfo> batchPipettigInfos = allPipettingInfos.Where(x => InOneOfTheRanges(x.sPrimerID, batchPlateInfos)).ToList();
-        //    List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>();
-        //    foreach (var pipettingInfo in batchPipettigInfos)
-        //    {
-        //        tmpPipettingInfos.Add(new PipettingInfo(pipettingInfo));
-        //    }
-        //    return tmpPipettingInfos;
-        //}
         private static string GetSrcPlateName(string sFilePath)
         {
             FileInfo fileInfo = new FileInfo(sFilePath);
@@ -128,38 +111,7 @@ namespace One2X
             return name.Substring(0, name.Length - 8);
         }
 
-        static private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList)
-        {
-            int startLine = 0;
-            bool is96Plate = GlobalVars.LabwareWellCnt != 16;
-            if (is96Plate)
-            {
-                startLine = 18;
-                foreach (List<string> well_PrimerIDs in well_PrimerIDsList)
-                {
-                    for (int i = 0; i < well_PrimerIDs.Count; i++)
-                    {
-                        readableOutput[i + startLine] += ",," + well_PrimerIDs[i];
-                    }
-                    startLine += (Common.rowCnt + 3);
-                }
-                return;
-            }
-
-            if (GlobalVars.LabwareWellCnt == 16)
-            {
-                foreach (List<string> strs in well_PrimerIDsList)
-                {
-                    for (int i = 0; i < strs.Count; i++)
-                    {
-                        readableOutput[i] += ",," + strs[i];
-                    }
-                }
-                return;
-            }
-
-          
-        }
+        
        
         private static string GetSubString(string x)
         {
@@ -179,7 +131,7 @@ namespace One2X
                 }
 
             }
-            int endPos = x.IndexOf('_');
+            int endPos = x.IndexOf('-');
             string sub = x.Substring(0, endPos);
             sub = sub.Substring(pos);
             return sub;

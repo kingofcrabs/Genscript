@@ -21,9 +21,9 @@ namespace One2X
         private string GetWellStr(int wellID)
         {
             int rowIndex = wellID - 1;
-            while (rowIndex >= Common.rowCnt)
-                rowIndex -= Common.rowCnt;
-            int colIndex = (wellID - 1) / Common.rowCnt;
+            while (rowIndex >= Common.RowCnt)
+                rowIndex -= Common.RowCnt;
+            int colIndex = (wellID - 1) / Common.RowCnt;
             char rowID = (char)('A' + rowIndex);
             string sWell = string.Format("{0}{1:D2}", rowID, colIndex + 1);
             return sWell;
@@ -74,41 +74,117 @@ namespace One2X
             return strs;
         }
 
-        public List<PipettingInfo> Generate(List<ItemInfo> items, string sFile)
+        private void WriteReadable(List<PipettingInfo> allPipettingInfos, List<string> readablecsvFormatStrs, string outputFolder)
         {
-            
+            List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
+            primerIDsOfLabwareList = GetWellPrimerID(allPipettingInfos,GlobalVars.LabwareWellCnt != 16);
+            MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
+            string sReadableOutputFile = outputFolder + "readableOutput.csv";
+            File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
+        }
+        private void MergeReadable(List<string> readableOutput, List<List<string>> well_PrimerIDsList)
+        {
+            int startLine = 0;
+            bool isPlate = GlobalVars.LabwareWellCnt != 16;
+            if (isPlate)
+            {
+                startLine = 18;
+                foreach (List<string> well_PrimerIDs in well_PrimerIDsList)
+                {
+                    for (int i = 0; i < well_PrimerIDs.Count; i++)
+                    {
+                        readableOutput[i + startLine] += ",," + well_PrimerIDs[i];
+                    }
+                    startLine += (Common.RowCnt + 3);
+                }
+                return;
+            }
+
+            if (GlobalVars.LabwareWellCnt == 16)
+            {
+                foreach (List<string> strs in well_PrimerIDsList)
+                {
+                    for (int i = 0; i < strs.Count; i++)
+                    {
+                        readableOutput[i] += ",," + strs[i];
+                    }
+                }
+                return;
+            }
+
+
+        }
+
+        protected string GetComment(string sComment)
+        {
+            return string.Format("B;Comment(\"{0}\");", sComment);
+        }
+
+        public List<PipettingInfo> Generate(List<ItemInfo> items,List<string> readableStrs, string sFolder)
+        {
             FillVols(items);
             int totalWellNeeded = items.Sum(x => x.sliceCnt);
             int curWellID = 1;
             string dstLabware = "";
             int dstWellID = 0;
+            string sFile = sFolder + "allInOne.gwl";
             List<PipettingInfo> allPipettings = new List<PipettingInfo>();
             foreach(var item in items)
             {
-                GetDestPlateNameAndWell(curWellID, ref dstLabware, ref dstWellID);
-                PipettingInfo pipettingInfo = new PipettingInfo(item.sID, item.plateName, item.srcWellID, dstLabware, dstWellID, item.vol);
-                allPipettings.Add(pipettingInfo);
-                curWellID++;
-            }
-            foreach(var item in items)
-            {
-                if(item.sliceCnt > 1)
+                for (int i = 0; i < item.sliceCnt; i++)
                 {
-                    for(int i = 0; i< item.sliceCnt -1 ;i++)
-                    {
-                        GetDestPlateNameAndWell(curWellID, ref dstLabware, ref dstWellID);
-                        curWellID++;
-                        PipettingInfo pipettingInfo = new PipettingInfo(item.sID, item.plateName, item.srcWellID, dstLabware, dstWellID, item.vol);
-                        allPipettings.Add(pipettingInfo);
-                        
-                    }
+                    GetDestPlateNameAndWell(curWellID, ref dstLabware, ref dstWellID);
+                    PipettingInfo pipettingInfo = new PipettingInfo(item.sID, item.plateName, item.srcWellID, dstLabware, dstWellID, item.vol);
+                    allPipettings.Add(pipettingInfo);
+                    curWellID++;
                 }
             }
+            
+            readableStrs.AddRange(Format(allPipettings, true));
+            WriteReadable(allPipettings, readableStrs, sFolder);
             List<string> strs = new List<string>();
-            allPipettings.ForEach(x => strs.AddRange(GenerateGWL(x)));
+            var srcLabwares = GetSrcLabwares(allPipettings);
+            foreach(var srcLabware in srcLabwares)
+            {
+                List<PipettingInfo> thisSrcLabwarePipettings = allPipettings.Where(x => x.srcLabware == srcLabware).ToList();
+                strs.Add(GetComment(string.Format("Pipetting {0}",srcLabware)));
+                for (int col = 0; col < Plate96.colCnt; col++)
+                {
+                    int startID = col * Plate96.rowCnt + 1;
+                    int endID = startID + Plate96.rowCnt - 1;
+                    List<PipettingInfo> thisBatchPipettings = new List<PipettingInfo>();
+                    for (int ID = startID; ID <= endID; ID++)
+                    {
+                        if (!thisSrcLabwarePipettings.Exists(x => x.srcWellID == ID))
+                            continue;
+                        var sameSrcIDPipettings = thisSrcLabwarePipettings.Where(x => x.srcWellID == ID).ToList();
+                        thisSrcLabwarePipettings = thisSrcLabwarePipettings.Except(sameSrcIDPipettings).ToList();
+                        int totalVol = (int)sameSrcIDPipettings.Sum(x => x.vol);
+                        var firstPipetting = sameSrcIDPipettings.First();
+                        strs.Add(GetAspirate(firstPipetting.srcLabware, firstPipetting.srcWellID, totalVol));
+                        foreach(var eachPipetting in sameSrcIDPipettings)
+                        {
+                            strs.Add(GetDispense(eachPipetting.dstLabware, eachPipetting.dstWellID, eachPipetting.vol));
+                        }
+                        strs.Add("W;");
+                    }
+                    strs.Add("B;");
+                }
+            }
             File.WriteAllLines(sFile, strs);
+            Console.WriteLine(string.Format("csv has been generated into:{0}.", sFile));
             return allPipettings;
-            Console.WriteLine(string.Format("csv has been generated into:{0}.",sFile));
+            
+        }
+
+     
+
+
+        internal List<string> GetSrcLabwares(List<PipettingInfo> allPipettingInfos)
+        {
+            HashSet<string> itemNames = new HashSet<string>();
+            allPipettingInfos.ForEach(x => itemNames.Add(x.srcLabware));
+            return new List<string>(itemNames);
         }
 
         
@@ -144,17 +220,7 @@ namespace One2X
         }
 
 
-        //private string Format(PipettingInfo pipettingInfo)
-        //{
-        //    return string.Format("{0},{1},{2},{3},{4},{5}",
-        //            pipettingInfo.srcLabware,
-        //            Common.GetWellDesc(pipettingInfo.srcWellID),
-        //            pipettingInfo.dstLabware,
-        //            pipettingInfo.dstWellID,
-        //            pipettingInfo.vol,
-        //            pipettingInfo.sPrimerID);
-        //}
-
+     
 
 
         private void GetDestPlateNameAndWell(int curWellID, ref string dstLabware, ref int dstWellID)
@@ -186,22 +252,15 @@ namespace One2X
                     primerIDs.Add(GetPrimerID(sameGroupPipettingInfo));
                 }
 
-                if (mix2plateKeywords.Contains(labware))     //96
+                if (mixtoPlate)     //96 or 384
                 {
                     all96Labwares.Add(labware);
                     all96PrimerIDs.Add(primerIDs);
                 }
-                else //16 or 24
+                else //16
                 {
-                    if (GlobalVars.LabwareWellCnt == 16)
-                    {
                         all16Labwares.Add(labware);
                         all16PrimerIDs.Add(primerIDs);
-                    }
-                    else
-                    {
-                        well_PrimerIDsList.Add(Format24WellPlate(labware, primerIDs));
-                    }
                 }
             }
             if (all16Labwares.Count > 0)
@@ -219,15 +278,15 @@ namespace One2X
                 List<string> strs = new List<string>();
                 strs.Add(all96Labwares[i]);
                 strs.Add(header);
-                List<string> rowLines = new List<string>(Common.rowCnt);
-                for (int line = 0; line < Common.rowCnt; line++)
+                List<string> rowLines = new List<string>(Common.RowCnt);
+                for (int line = 0; line < Common.RowCnt; line++)
                     rowLines.Add(string.Format("{0},", (char)('A' + line)));
                 var primerIDs = all96PrimerIDs[i];
                 for (int j = 0; j < primerIDs.Count; j++)
                 {
                     int r = j + 1;
-                    while (r > Common.rowCnt)
-                        r -= Common.rowCnt;
+                    while (r > Common.RowCnt)
+                        r -= Common.RowCnt;
                     rowLines[r - 1] += primerIDs[j] + ",";
                 }
                 strs.AddRange(rowLines);
@@ -240,7 +299,7 @@ namespace One2X
         {
             //",1,2,3,4,5,6,7,8,9,10,11,12";
             string s = "";
-            for(int i = 0; i< Common.colCnt;i++)
+            for(int i = 0; i< Common.ColumnCnt;i++)
             {
                 s += string.Format(",{0}", i + 1);
             }
