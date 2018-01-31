@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace genscript
+namespace genscript384
 {
     class OperationSheet
     {
@@ -13,10 +13,16 @@ namespace genscript
         int cnt = 192;
         int extraDescriptionColumn = 7;
         int IDColumn = 0;
-        int srcWellColumn = 6;
+        int srcWellColumn = 4;
+        int NameColumn = 6;
         private string sPlateName = "";
         public static string empty = "empty";
         List<ItemInfo> itemsInfo;
+
+
+
+
+
         public OperationSheet(string sCSVFile)
         {
             sPlateName = Common.GetPlateName(sCSVFile);
@@ -51,13 +57,13 @@ namespace genscript
             {
                 itemsInfo.AddRange(GetItemsInfo(firstHalfStrLists));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new Exception("Invalid file: " + sCSVFile + ex.Message);
+                throw new Exception("Invalid file: " + sCSVFile + " Error message is: " + ex.Message);
             }
         }
 
-      
+
         public List<ItemInfo> Items
         {
             get
@@ -69,37 +75,45 @@ namespace genscript
         private List<ItemInfo> GetItemsInfo(List<List<string>> strLists)
         {
             List<ItemInfo> itemsInfo = new List<ItemInfo>();
-            string sExtraDescription = "";
-            string sCurrentIndex = strLists.First()[0];
-            sCurrentIndex = GetMainIndex(sCurrentIndex);
-            foreach (List<string> strs in strLists)
-            {
-                string tmpCurrentIndex = GetMainIndex(strs[IDColumn]);
-                if (tmpCurrentIndex != sCurrentIndex)
-                {
-                    sCurrentIndex = tmpCurrentIndex;
-                    if( strs[extraDescriptionColumn] == "")
-                        strs[extraDescriptionColumn] = empty;
-                }
-            }
+            Dictionary<string, string> primerName_ExtraDescription = new Dictionary<string, string>();
+
 
             foreach (List<string> strs in strLists)
             {
-                if (strs[extraDescriptionColumn] != string.Empty)
-                    sExtraDescription = strs[extraDescriptionColumn];
-                if (strs[0] == "")
+                if (IsEmptySample(strs))
                     continue;
-                CheckExtraDescription(sExtraDescription);
-                itemsInfo.Add(GetItemInfo(strs, sExtraDescription));
+
+                string primerName = GetMainPrimerName(strs[NameColumn]);
+                if (strs[extraDescriptionColumn] != string.Empty)
+                {
+                    if (!primerName_ExtraDescription.ContainsKey(primerName))
+                        primerName_ExtraDescription.Add(primerName, strs[extraDescriptionColumn]);
+                }
+                string extraDesc = primerName_ExtraDescription.ContainsKey(primerName) ? primerName_ExtraDescription[primerName] : empty;
+
+                itemsInfo.Add(GetItemInfo(strs, extraDesc));
+
             }
-            
             return itemsInfo;
         }
 
+        private bool IsEmptySample(List<string> strs)
+        {
+            return strs.First() == "";
+        }
+
+        private string GetMainPrimerName(string name)
+        {
+            string[] strs = name.Split('_');
+            return strs[0];
+
+        }
 
         private void CheckExtraDescription(string s)
         {
-            string sExtraDesc = s;
+            if (s == empty)
+                return;
+            string sExtraDesc = s.Trim();
             string moreInfo = "The description is: " + s;
             int pos = sExtraDesc.IndexOf("**");
             int lastPos = sExtraDesc.LastIndexOf("**");
@@ -109,7 +123,7 @@ namespace genscript
                 throw new Exception("Invalid remarks! first two chars is NOT '**'" + moreInfo);
             if (lastPos == pos)
                 throw new Exception("Invalid remarks! Only one ** found!" + moreInfo);
-            
+
         }
 
         private string GetMainIndex(string sCurrentIndex)
@@ -123,34 +137,57 @@ namespace genscript
             ItemInfo itemInfo = new ItemInfo();
             itemInfo.sExtraDescription = sExtraDescription;
             itemInfo.sID = strs[IDColumn];
-            ParseID(itemInfo.sID,ref itemInfo);
+            //ParseID(itemInfo.sID,ref itemInfo);
+            string name = strs[NameColumn];
+            ParseID(itemInfo.sID, name, ref itemInfo);
             itemInfo.srcWellID = Common.GetWellID(strs[srcWellColumn]);
             return itemInfo;
         }
 
-        private void ParseID(string src,ref ItemInfo itemInfo)
+        private void ParseID(string sPrimerID, string sPrimerName, ref ItemInfo itemInfo)
         {
-            List<string> strs = src.Split('_').ToList();
+            List<string> strs = sPrimerName.Split('_').ToList();
             itemInfo.plateName = sPlateName;
             itemInfo.mainID = strs[0];
-            itemInfo.subID = int.Parse(strs[1]);
+            string sSubID = strs.Last();
+            if (itemInfo.sExtraDescription == empty)
+            {
+                itemInfo.subID = 1;
+            }
+            else
+            {
+                int val = 0;
+                bool bok = int.TryParse(strs.Last(), out val);
+                if (!bok)
+                    throw new Exception(string.Format("Primer :{0}'s name is invalid!", sPrimerID));
+                itemInfo.subID = val;
+            }
+
         }
 
-        private List<List<string>> GetHalfStrLists(List<string> strs,bool firstHalf = true)
+        //private void ParseID(string src,ref ItemInfo itemInfo)
+        //{
+        //    List<string> strs = src.Split('_').ToList();
+        //    itemInfo.plateName = sPlateName;
+        //    itemInfo.mainID = strs[0];
+        //    itemInfo.subID = int.Parse(strs[1]);
+        //}
+
+        private List<List<string>> GetHalfStrLists(List<string> strs, bool firstHalf = true)
         {
             List<List<string>> halfStrs = new List<List<string>>();
             foreach (string s in strs)
             {
                 if (firstHalf)
-                    halfStrs.Add(GetHalf(s,true));
+                    halfStrs.Add(GetHalf(s, true));
                 else
-                    halfStrs.Add(GetHalf(s,false));
+                    halfStrs.Add(GetHalf(s, false));
             }
             return halfStrs;
         }
 
 
-        private List<string> GetHalf(string s,bool bFirstHalf)
+        private List<string> GetHalf(string s, bool bFirstHalf)
         {
             int startIndex = 0;
             int endIndex = 8;
@@ -159,19 +196,19 @@ namespace genscript
                 startIndex = 9;
                 endIndex = 16;
             }
-            return GetSubStrs(s,startIndex,endIndex);
+            return GetSubStrs(s, startIndex, endIndex);
         }
 
         private List<string> GetSubStrs(string s, int startIndex, int endIndex)
         {
             List<string> strs = s.Split(',').ToList();
-            strs = strs.GetRange(startIndex, endIndex-startIndex+1);
+            strs = strs.GetRange(startIndex, endIndex - startIndex + 1);
             return strs;
         }
 
         private List<string> GetFirstHalf(string s)
         {
-            return GetSubStrs(s,0, 8);
+            return GetSubStrs(s, 0, 8);
         }
     }
 
@@ -196,7 +233,7 @@ namespace genscript
         public double vol;
         public int orgDstWellID;
 
-        public PipettingInfo(string sPrimerID,string srcLabware,
+        public PipettingInfo(string sPrimerID, string srcLabware,
             int srcWell, string dstLabware, int dstWell, double v)
         {
             this.sPrimerID = sPrimerID;
@@ -219,7 +256,7 @@ namespace genscript
             orgDstWellID = pipettingInfo.orgDstWellID;
         }
 
-       
-       
+
+
     }
 }

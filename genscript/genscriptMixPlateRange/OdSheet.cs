@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace genscript
+namespace genscript384
 {
     class OdSheet
     {
-        static int headIndex = 53;
+        static int headIndex = 21;
         static public Dictionary<string, Dictionary<int, int>> eachPlateID_Vols = new Dictionary<string, Dictionary<int, int>>();
 
         public void ReadInfo(string sCSVFile, int plateIndex)

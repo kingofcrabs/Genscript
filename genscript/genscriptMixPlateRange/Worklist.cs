@@ -6,7 +6,7 @@ using System.Configuration;
 using System.IO;
 using System.Diagnostics;
 
-namespace genscript
+namespace genscript384
 {
     class Worklist
     {
@@ -19,9 +19,10 @@ namespace genscript
 
 
         public List<string> GenerateWorklist(List<ItemInfo> itemsInfo,
-            List<string> readableOutput, ref List<PipettingInfo> allPipettingInfos,
+            List<string> readableOutput, ref List<PipettingInfo> allPipettingInfos,ref List<PipettingInfo> copyPipettingInfos,
             ref List<string> multiDispenseOptGWL)
         {
+            copyPipettingInfos = GetCopyPipettingInfos(itemsInfo);
             List<PipettingInfo> pipettingInfos = GetPipettingInfos(itemsInfo);
             pipettingInfos = pipettingInfos.OrderBy( x => x.srcLabware +  Common.FormatWellID(x.srcWellID) ).ToList();
 #if DEBUG
@@ -42,6 +43,27 @@ namespace genscript
             List<string> strs = OptimizeCommandsSinglePlate(pipettingInfos);
             readableOutput.AddRange(Format(pipettingInfos, true));
             return strs;
+        }
+
+        private List<PipettingInfo> GetCopyPipettingInfos(List<ItemInfo> itemsInfo)
+        {
+            List<PipettingInfo> pipettingInfos = new List<PipettingInfo>();
+            int currentWellID = 1;
+            foreach(var itemInfo in itemsInfo)
+            {
+                int id = currentWellID;
+                id = (id - 1) % 96 + 1;
+                int plateID = (id + 95) / 96;
+                string plateName = string.Format("dst{0}", plateID);
+                PipettingInfo pipettingInfo = new PipettingInfo(itemInfo.sID,
+                        itemInfo.plateName,
+                        itemInfo.srcWellID,
+                        plateName, id, itemInfo.vol);
+               currentWellID++;
+                pipettingInfos.Add(pipettingInfo);
+            }
+            return pipettingInfos;
+            //Format(pipettingInfos)
         }
 
         private List<PipettingInfo> SortByDstWell(List<PipettingInfo> pipettingInfos)
@@ -251,7 +273,7 @@ namespace genscript
             
             if (sameGroupPipettingInfo.Count() == 1)
                 return sameGroupPipettingInfo.FirstOrDefault().sPrimerID;
-            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x => GetSubID(x.sPrimerID)).ToList();
+            var pipettingsInfo = sameGroupPipettingInfo.OrderBy(x =>x.sPrimerID).ToList();
             
                 
             string first = pipettingsInfo.First().sPrimerID;
@@ -264,11 +286,7 @@ namespace genscript
 
         }
 
-        private int GetSubID(string s)
-        {
-            string[] strs = s.Split('_');
-            return int.Parse(strs[1]);
-        }
+       
 
         private List<string> GenerateWorklist(List<PipettingInfo> bigVols, List<PipettingInfo> normalVols)
         {

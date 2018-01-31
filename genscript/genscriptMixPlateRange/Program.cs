@@ -7,7 +7,7 @@ using System.IO;
 using Microsoft.Office.Interop.Excel;
 using System.Reflection;
 
-namespace genscript
+namespace genscript384
 {
     class Program
     {
@@ -37,7 +37,7 @@ namespace genscript
             string sHeader = "srcLabel,srcWell,dstLabel,dstWell,volume";
             string sReadableHeader = "primerLabel,srcLabel,srcWell,dstLabel,dstWell,volume";
             List<string> files = Directory.EnumerateFiles(GlobalVars.WorkingFolder, "*csv").ToList();
-            List<string> optFiles = files.Where(x => x.Contains("_768")).ToList();
+            List<string> optFiles = files.Where(x => x.Contains("_384")).ToList();
             List<string> odFiles = files.Where(x => x.Contains("_OD")).ToList();
             optFiles = optFiles.OrderBy(x => GetSubString(x)).ToList();
             odFiles = odFiles.OrderBy(x => GetSubString(x)).ToList();
@@ -93,6 +93,7 @@ namespace genscript
                 readablecsvFormatStrs.Add(sReadableHeader);
              
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
+                List<PipettingInfo> copyPipettingInfos = new List<PipettingInfo>();
                 List<ItemInfo> itemsInfo = new List<ItemInfo>();
                 for (int i = 0; i < optCSVFiles.Count; i++)
                 {
@@ -103,7 +104,8 @@ namespace genscript
                     odSheet.ReadInfo(odCSVFiles[i], i);
                 }
 
-                var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
+
+                var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos, ref copyPipettingInfos,
                           ref optGwlFormatStrs);
                 
 
@@ -127,6 +129,7 @@ namespace genscript
                 {
                     var tmpPipettingInfo = pair.Value;
                     var prefix = pair.Key;
+                    string copyFileName = outputFolder + "copy.gwl";
                     string sOutputFolder = outputFolder + string.Format("{0}\\", prefix);
                     if (!Directory.Exists(sOutputFolder))
                     {
@@ -136,19 +139,8 @@ namespace genscript
                     string fileName = sOutputFolder + "1.gwl";
                     var strs = worklist.OptimizeCommandsSinglePlate(tmpPipettingInfo);
                     File.WriteAllLines(fileName, strs);
-                    //var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
-                    //var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
-                    //string sOutputFolder = outputFolder + string.Format("{0}\\", prefix);
-                    //if (!Directory.Exists(sOutputFolder))
-                    //{
-                    //    Directory.CreateDirectory(sOutputFolder);
-                    //}
-                    //for (int i = 0; i < eachPlatePipettingGWLStrs.Count; i++)
-                    //{
-                    //    File.WriteAllLines(sOutputFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
-                    //    File.WriteAllLines(sOutputFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
-                    //}
-                    //File.WriteAllText(sOutputFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
+                    var copyStrs = worklist.Format(copyPipettingInfos); 
+                    File.WriteAllLines(copyFileName, strs);
                 }
                 
                 //add start end to tubes
