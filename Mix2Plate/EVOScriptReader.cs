@@ -5,7 +5,7 @@ using System.Text;
 using System.Configuration;
 using System.IO;
 
-namespace genscript
+namespace Mix2Plate
 {
     public class EVOScriptReader
     {

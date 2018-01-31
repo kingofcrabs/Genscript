@@ -89,17 +89,17 @@ namespace genscript
                 List<string> csvFormatstrs = new List<string>();
                 List<string> readablecsvFormatStrs = new List<string>();
                 List<string> optGwlFormatStrs = new List<string>();
-
+                
                 csvFormatstrs.Add(sHeader);
                 readablecsvFormatStrs.Add(sReadableHeader);
-
+             
                 List<PipettingInfo> allPipettingInfos = new List<PipettingInfo>();
                 int filesPerBatch = Common.PlateCnt;
                 int batchCnt = (optCSVFiles.Count + filesPerBatch - 1) / filesPerBatch;
                 File.WriteAllText(outputFolder + "fileCnt.txt", batchCnt.ToString());
                 List<ItemInfo> itemsInfo = new List<ItemInfo>();
                 List<OperationSheetQueueInfo> queueInfos = new List<OperationSheetQueueInfo>();
-
+            
                 for (int i = 0; i < optCSVFiles.Count; i++)
                 {
                     OperationSheet optSheet = new OperationSheet(optCSVFiles[i]);
@@ -111,7 +111,7 @@ namespace genscript
 
                 var tmpStrs = worklist.GenerateWorklist(itemsInfo, readablecsvFormatStrs, ref allPipettingInfos,
                           ref optGwlFormatStrs);
-                File.WriteAllText(outputFolder + "totalDst.txt", worklist.GetDestLabwares(allPipettingInfos).Count.ToString());
+                File.WriteAllText(outputFolder + "totalDst.txt", worklist.GetDestLabwares(allPipettingInfos).Count.ToString()); 
                 for (int batchIndex = 0; batchIndex < batchCnt; batchIndex++)
                 {
                     int startFileIndex = batchIndex * filesPerBatch;
@@ -131,34 +131,36 @@ namespace genscript
                         batchPlateNames.Add(GetSrcPlateName(filePath));
                         batchPlateInfos.Add(queueInfos[curFileIndex]);
                     }
-
+                    
                     var thisBatchPipettingInfos = GetPipettingInfosThisBatch(allPipettingInfos, batchPlateInfos);
-                    worklist.AdjustLabwareLabels(thisBatchPipettingInfos, batchPlateNames, true);
+                    worklist.AdjustLabwareLabels(thisBatchPipettingInfos,batchPlateNames, true);
 
                     var destLabwares = worklist.GetDestLabwares(thisBatchPipettingInfos);
                     File.WriteAllLines(sDstLabwaresFile, destLabwares);
                     File.WriteAllLines(sBatchSrcPlatesFile, batchPlateNames);
 
                     Dictionary<string, List<PipettingInfo>> pipettingInfoList = new Dictionary<string, List<PipettingInfo>>();
-                    if (GlobalVars.pipettingMixFirst)
+                    if(GlobalVars.pipettingMixFirst)
                     {
                         var mixPipettingInfos = thisBatchPipettingInfos.Where(x => x.dstLabware == "Mix").ToList();
                         var otherPipettingInfos = thisBatchPipettingInfos.Except(mixPipettingInfos).ToList();
-                        pipettingInfoList.Add("Mix", mixPipettingInfos);
-                        pipettingInfoList.Add("StartEnd", otherPipettingInfos);
+                        pipettingInfoList.Add("Mix",mixPipettingInfos);
+                        
+                        //File.WriteAllLines
+                        pipettingInfoList.Add("StartEnd",otherPipettingInfos);
                     }
                     else
                     {
-                        pipettingInfoList.Add("All", thisBatchPipettingInfos);
+                        pipettingInfoList.Add("All",thisBatchPipettingInfos);
                     }
 
-                    foreach (var pair in pipettingInfoList)
+                    foreach(var pair in pipettingInfoList)
                     {
                         var tmpPipettingInfo = pair.Value;
                         var prefix = pair.Key;
                         var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
                         var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
-                        string sOutputBatchFolder = outputFolder + string.Format("batch{0}\\{1}\\", batchIndex + 1, prefix);
+                        string sOutputBatchFolder = outputFolder + string.Format("batch{0}\\{1}\\", batchIndex + 1,prefix);
                         if (!Directory.Exists(sOutputBatchFolder))
                         {
                             Directory.CreateDirectory(sOutputBatchFolder);
@@ -168,18 +170,18 @@ namespace genscript
                             File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
                             File.WriteAllLines(sOutputBatchFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
                         }
-
-                        if (pair.Key == "Mix")
+                        if(pair.Key == "Mix")
                         {
                             List<string> mixDilutionStrs = GenerateMixDilution(pair.Value);
-                            File.WriteAllLines(sOutputBatchFolder + "mixDilution.gwl", mixDilutionStrs);
+                            File.WriteAllLines(sOutputBatchFolder + "mixDilution.gwl",mixDilutionStrs);
                         }
+                        
                         File.WriteAllText(sOutputBatchFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
                     }
                 }
                 //add start end to tubes
                 var startEndPipettings = worklist.AddStartEnd2EPTube(allPipettingInfos);
-                var startPipettings = startEndPipettings.Where(x => x.srcLabware == "Start").ToList();
+                var startPipettings = startEndPipettings.Where(x=>x.srcLabware == "Start").ToList();
                 var startPipettingStrs = worklist.GenerateGWL(startPipettings);
                 var endPipettings = startEndPipettings.Where(x => x.srcLabware == "End").ToList();
                 var endPipettingStrs = worklist.GenerateGWL(endPipettings);
@@ -188,9 +190,9 @@ namespace genscript
 
                 List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
                 primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos, Common.Mix2Plate);
+                
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
-
             }
 #if DEBUG
 
@@ -213,18 +215,13 @@ namespace genscript
             Console.WriteLine(string.Format("Out put file has been written to folder : {0}", outputFolder));
             Console.WriteLine("version: " + sVersion);
             Console.WriteLine("Press any key to exit!");
-            
-
         }
-
 
         private static List<string> GenerateMixDilution(List<PipettingInfo> mixPipettingInfos)
         {
             List<string> strs = new List<string>();
             int maxWellID = mixPipettingInfos.Max(x => x.dstWellID);
             string dilutionLabware = ConfigurationManager.AppSettings["dilutionLiquidLabware"];
-
-            int srcWellID = 1;
             for(int id = 1; id<= maxWellID; id++)
             {
                 var sameDstWellPipettings = mixPipettingInfos.Where(x => x.dstWellID == id + 1).ToList();
@@ -234,30 +231,18 @@ namespace genscript
                 if (totalVol >= 300)
                     continue;
 
-                int neededVol = (int)(300 - totalVol);
-                int times = neededVol > 180 ? 2 : 1;
-                for (int i = 0; i < times; i++ )
-                {
-                    int vol = neededVol / times;
-                    if( i == times-1)
-                    {
-                        vol = neededVol - neededVol / 2;
-                    }
-                    string sAspirate = string.Format("A;{0};;;{1};;{2};;;",
-                           dilutionLabware,
-                           (srcWellID - 1) % 8 + 1,
-                           vol);
-                    srcWellID++;
-                    var thisPipetting = sameDstWellPipettings.First();
-                    string sDispense = string.Format("D;{0};;;{1};;{2};;;",
-                       thisPipetting.dstLabware,
-                       thisPipetting.dstWellID,
-                        vol);
-                    strs.Add(sAspirate);
-                    strs.Add(sDispense);
-                    strs.Add("W;");
-                }
-                   
+                string sAspirate = string.Format("A;{0};;;{1};;{2};;;",
+                       dilutionLabware,
+                       1,
+                       300-totalVol);
+                var thisPipetting = sameDstWellPipettings.First();
+                string sDispense = string.Format("D;{0};;;{1};;{2};;;",
+                   thisPipetting.dstLabware,
+                   thisPipetting.dstWellID,
+                   300 - totalVol);
+                strs.Add(sAspirate);
+                strs.Add(sDispense);
+                strs.Add("W;");
             }
             return strs;
         }
