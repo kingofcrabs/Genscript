@@ -127,19 +127,28 @@ namespace genscript
                 {
                     var tmpPipettingInfo = pair.Value;
                     var prefix = pair.Key;
-                    var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
-                    var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
                     string sOutputFolder = outputFolder + string.Format("{0}\\", prefix);
                     if (!Directory.Exists(sOutputFolder))
                     {
                         Directory.CreateDirectory(sOutputFolder);
                     }
-                    for (int i = 0; i < eachPlatePipettingGWLStrs.Count; i++)
-                    {
-                        File.WriteAllLines(sOutputFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
-                        File.WriteAllLines(sOutputFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
-                    }
-                    File.WriteAllText(sOutputFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
+                    File.WriteAllText(sOutputFolder + "count.txt", "1");
+                    string fileName = sOutputFolder + "1.gwl";
+                    var strs = worklist.OptimizeCommandsSinglePlate(tmpPipettingInfo);
+                    File.WriteAllLines(fileName, strs);
+                    //var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
+                    //var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
+                    //string sOutputFolder = outputFolder + string.Format("{0}\\", prefix);
+                    //if (!Directory.Exists(sOutputFolder))
+                    //{
+                    //    Directory.CreateDirectory(sOutputFolder);
+                    //}
+                    //for (int i = 0; i < eachPlatePipettingGWLStrs.Count; i++)
+                    //{
+                    //    File.WriteAllLines(sOutputFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
+                    //    File.WriteAllLines(sOutputFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
+                    //}
+                    //File.WriteAllText(sOutputFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
                 }
                 
                 //add start end to tubes
