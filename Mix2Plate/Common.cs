@@ -47,6 +47,8 @@ namespace genscript384
             int pos = sCSVFile.LastIndexOf("\\");
             string sName = sCSVFile.Substring(pos + 1);
             pos = sName.IndexOf("_");
+            if (pos == -1)
+                pos = sName.IndexOf("-");
             sName = sName.Substring(0, pos);
             return sName;
         }
