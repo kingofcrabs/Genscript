@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Configuration;
 
-namespace genscript384
+namespace mix384
 {
     class Common
     {

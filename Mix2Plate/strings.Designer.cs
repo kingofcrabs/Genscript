@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Mix2Plate {
+namespace mix384 {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Mix2Plate {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Mix2Plate.strings", typeof(strings).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("mix384.strings", typeof(strings).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,7 +61,7 @@ namespace Mix2Plate {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 0.69.
+        ///   Looks up a localized string similar to 0.5.
         /// </summary>
         internal static string version {
             get {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace genscript384
+namespace mix384
 {
     class OperationSheetQueueInfo
     {

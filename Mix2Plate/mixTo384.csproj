@@ -8,8 +8,8 @@
     <ProjectGuid>{73A4F6F9-024D-4417-9D69-6805A017BCB6}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>genscript384</RootNamespace>
-    <AssemblyName>genscript384</AssemblyName>
+    <RootNamespace>mix384</RootNamespace>
+    <AssemblyName>mix384</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>

@@ -6,7 +6,7 @@ using System.Configuration;
 using System.IO;
 using System.Diagnostics;
 
-namespace genscript384
+namespace mix384
 {
     class Worklist
     {
