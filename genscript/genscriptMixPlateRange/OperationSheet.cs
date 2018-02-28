@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace genscript
+namespace Mix2Tube
 {
     class OperationSheet
     {
@@ -133,7 +133,14 @@ namespace genscript
             List<string> strs = src.Split('_').ToList();
             itemInfo.plateName = sPlateName;
             itemInfo.mainID = strs[0];
-            itemInfo.subID = int.Parse(strs[1]);
+            string sID = strs[1];
+            string processedID = "";
+            foreach (var ch in sID)
+            {
+                if (char.IsDigit(ch))
+                    processedID += ch;
+            }
+            itemInfo.subID = int.Parse(processedID);
         }
 
         private List<List<string>> GetHalfStrLists(List<string> strs,bool firstHalf = true)
@@ -184,6 +191,17 @@ namespace genscript
         public int srcWellID;
         public string sExtraDescription;
         public int vol;
+    }
+
+    public struct DstInfo
+    {
+        public string dstLabware;
+        public int dstWellID;
+        public DstInfo(string labware, int wellID)
+        {
+            dstLabware = labware;
+            dstWellID = wellID;
+        }
     }
 
     class PipettingInfo

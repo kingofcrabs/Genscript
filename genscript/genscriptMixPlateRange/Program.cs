@@ -6,8 +6,9 @@ using System.Configuration;
 using System.IO;
 using Microsoft.Office.Interop.Excel;
 using System.Reflection;
+using MixToTube;
 
-namespace genscript
+namespace Mix2Tube
 {
     class Program
     {

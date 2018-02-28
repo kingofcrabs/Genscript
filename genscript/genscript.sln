@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3D300F10-4499-4AE6-9D6D-714FABB7D668}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MixTo384", "genscriptMixPlateRange\MixTo384.csproj", "{73A4F6F9-024D-4417-9D69-6805A017BCB6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "384MixToTubes", "genscriptMixPlateRange\384MixToTubes.csproj", "{73A4F6F9-024D-4417-9D69-6805A017BCB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
