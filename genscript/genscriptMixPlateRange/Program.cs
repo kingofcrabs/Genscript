@@ -113,7 +113,7 @@ namespace genscript
                 Dictionary<string, List<PipettingInfo>> pipettingInfoList = new Dictionary<string, List<PipettingInfo>>();
                 if (GlobalVars.pipettingMixFirst)
                 {
-                    var mixPipettingInfos = allPipettingInfos.Where(x => x.dstLabware == "Mix").ToList();
+                    var mixPipettingInfos = allPipettingInfos.Where(x => x.isToMix).ToList();
                     var otherPipettingInfos = allPipettingInfos.Except(mixPipettingInfos).ToList();
                     pipettingInfoList.Add("Mix", mixPipettingInfos);
                     pipettingInfoList.Add("StartEnd", otherPipettingInfos);
@@ -136,32 +136,11 @@ namespace genscript
                     string fileName = sOutputFolder + "1.gwl";
                     var strs = worklist.OptimizeCommandsSinglePlate(tmpPipettingInfo);
                     File.WriteAllLines(fileName, strs);
-                    //var eachPlatePipettingGWLStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, true);
-                    //var eachPlatePipettingStrs = worklist.OptimizeThenFormat(tmpPipettingInfo, false);
-                    //string sOutputFolder = outputFolder + string.Format("{0}\\", prefix);
-                    //if (!Directory.Exists(sOutputFolder))
-                    //{
-                    //    Directory.CreateDirectory(sOutputFolder);
-                    //}
-                    //for (int i = 0; i < eachPlatePipettingGWLStrs.Count; i++)
-                    //{
-                    //    File.WriteAllLines(sOutputFolder + string.Format("{0}.gwl", i + 1), eachPlatePipettingGWLStrs[i]);
-                    //    File.WriteAllLines(sOutputFolder + string.Format("{0}.csv", i + 1), eachPlatePipettingStrs[i]);
-                    //}
-                    //File.WriteAllText(sOutputFolder + "count.txt", eachPlatePipettingGWLStrs.Count.ToString());
+                   
                 }
-                
-                //add start end to tubes
-                var startEndPipettings = worklist.AddStartEnd2EPTube(allPipettingInfos);
-                var startPipettings = startEndPipettings.Where(x=>x.srcLabware == "Start").ToList();
-                var startPipettingStrs = worklist.GenerateGWL(startPipettings);
-                var endPipettings = startEndPipettings.Where(x => x.srcLabware == "End").ToList();
-                var endPipettingStrs = worklist.GenerateGWL(endPipettings);
-                File.WriteAllLines(outputFolder + "start.gwl", startPipettingStrs);
-                File.WriteAllLines(outputFolder + "end.gwl", endPipettingStrs);
 
                 List<List<string>> primerIDsOfLabwareList = new List<List<string>>();
-                primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos, Common.Mix2Plate);
+                primerIDsOfLabwareList = worklist.GetWellPrimerID(allPipettingInfos,false);
                 MergeReadable(readablecsvFormatStrs, primerIDsOfLabwareList);
                 File.WriteAllLines(sReadableOutputFile, readablecsvFormatStrs);
             }

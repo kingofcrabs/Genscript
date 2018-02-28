@@ -334,7 +334,6 @@ namespace genscript
                 tmpCommands.Add("B;");
                 return tmpCommands; 
             }
-
             List<PipettingInfo> tmpPipettingInfos = new List<PipettingInfo>(pipettingInfos);
             //List<PipettingInfo> allOptimizedPipettingInfos = new List<PipettingInfo>();
             List<string> commands = new List<string>();
@@ -378,9 +377,6 @@ namespace genscript
             }
             commands.Add("B;");
             return commands;
-            //return 
-            //allOptimizedPipettingInfos.AddRange(tmpPipettingInfos.OrderBy(x => x.srcLabware + x.srcWellID.ToString()));
-            //return allOptimizedPipettingInfos;
         }
 
         private List<string> FormatBatch(List<PipettingInfo> thisBatchPipettingInfos)
@@ -662,21 +658,21 @@ namespace genscript
             List<ItemInfo> sameRangeItems,
             StartEnd range)
         {
-            if (IsOnBoundary(sameRangeItems.First(), range))
+            if (IsOnBoundary(sameRangeItems.First(), range)) //单个的，只要加首，不要加尾
             {
                 Add2EPTube(pipettingInfos,sameRangeItems.First());
-                Add2PlateStart(pipettingInfos, sameRangeItems.First());
             }
-
+            string epLabel = "";
+            int wellPos = 0;
+            CalculateEPPos(ref epLabel,ref wellPos);
             foreach (var item in sameRangeItems)
-                Add2PlateMix(pipettingInfos, item);
+                AddMix2EPTube(pipettingInfos, item,epLabel,wellPos);
 
-            if (sameRangeItems.Count > 1) //单个的，只加到EP管一次
+            if (sameRangeItems.Count > 1) //单个的，已经再加首里面搞定了
             {
                 if (IsOnBoundary(sameRangeItems.Last(), range))
                 {
                     Add2EPTube(pipettingInfos, sameRangeItems.Last());
-                    Add2PlateEnd(pipettingInfos, sameRangeItems.Last());
                 }
             }
             usedPlateWells++;
@@ -712,10 +708,8 @@ namespace genscript
             Debug.WriteLine(string.Format("plateName:{0},srcWell{1},dstLabware {2},dstWellID {3}", itemInfo.plateName, itemInfo.srcWellID, plateName, usedPlateWells));
         }
      
-        //no more use
         private void Add2EPTube(List<PipettingInfo> pipettingInfos, ItemInfo itemInfo)
         {
-            return;
             string dstLabware = "";
             int dstWellID = 0;
             int vol = itemInfo.vol * 10;
@@ -729,6 +723,22 @@ namespace genscript
                 itemInfo.plateName,
                 itemInfo.srcWellID,
                 dstLabware, dstWellID, vol);
+            pipettingInfos.Add(pipettingInfo);
+            usedEPTubes++;
+        }
+
+
+        private void AddMix2EPTube(List<PipettingInfo> pipettingInfos, ItemInfo itemInfo, string dstLabware, int dstWellID)
+        {
+            int vol = itemInfo.vol * 10;
+            if (ConfigurationManager.AppSettings.AllKeys.Contains("EPVolume"))
+            {
+                vol = int.Parse(ConfigurationManager.AppSettings["EPVolume"]);
+            }
+            PipettingInfo pipettingInfo = new PipettingInfo(itemInfo.sID,
+                itemInfo.plateName,
+                itemInfo.srcWellID,
+                dstLabware, dstWellID, vol,true);
             pipettingInfos.Add(pipettingInfo);
             usedEPTubes++;
         }

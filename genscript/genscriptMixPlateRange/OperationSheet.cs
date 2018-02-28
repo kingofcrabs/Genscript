@@ -195,9 +195,9 @@ namespace genscript
         public int dstWellID;
         public double vol;
         public int orgDstWellID;
-
+        public bool isToMix;
         public PipettingInfo(string sPrimerID,string srcLabware,
-            int srcWell, string dstLabware, int dstWell, double v)
+            int srcWell, string dstLabware, int dstWell, double v, bool mix = false)
         {
             this.sPrimerID = sPrimerID;
             this.srcLabware = srcLabware;
@@ -206,6 +206,7 @@ namespace genscript
             this.dstWellID = dstWell;
             this.vol = v;
             orgDstWellID = -1;
+            isToMix = mix;
         }
 
         public PipettingInfo(PipettingInfo pipettingInfo)
@@ -217,6 +218,7 @@ namespace genscript
             dstWellID = pipettingInfo.dstWellID;
             vol = pipettingInfo.vol;
             orgDstWellID = pipettingInfo.orgDstWellID;
+            isToMix = pipettingInfo.isToMix;
         }
 
        
